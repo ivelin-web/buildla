@@ -3,7 +3,7 @@
 ## What You Get
 
 ✅ Professional AI chat widget  
-✅ 5 specialized service types (construction, renovation, landscaping, painting, roofing)  
+✅ Ready to add different tasks
 ✅ Secure OpenAI integration  
 ✅ Mobile-responsive design  
 ✅ Easy Squarespace embedding  
@@ -13,7 +13,20 @@
 ### 1️⃣ Deploy (5 minutes)
 
 1. Get OpenAI API key from [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-2. Click: [![Deploy](https://vercel.com/button)](https://vercel.com/new/clone)
+
+2. **Deploy to Vercel** (choose one option):
+
+   **⚡ Option A: One-Click Deploy (Recommended)**
+   - Click: [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/ivelin-web/squarespace-openai-chat)
+   - Choose a name for your project
+   - This will clone the repo to your GitHub and deploy to Vercel automatically
+
+   **📁 Option B: Manual Import**
+   - Go to [vercel.com/new](https://vercel.com/new)
+   - Click "Import Third-Party Git Repository"
+   - Paste: `https://github.com/ivelin-web/squarespace-openai-chat`
+   - Follow the prompts
+
 3. Add your API key as `OPENAI_API_KEY` environment variable
 4. Save your Vercel URL (e.g., `https://your-project.vercel.app`)
 

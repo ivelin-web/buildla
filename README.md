@@ -27,9 +27,9 @@ cd squarespace-openai-chat
 # Install dependencies
 pnpm install
 
-# Set up environment variables
-cp env.example .env.local
-# Edit .env.local and add your OpenAI API key
+# Set up environment variables  
+cp env.example .env
+# Edit .env and add your OpenAI API key
 
 # Deploy to Vercel
 pnpm deploy
@@ -177,15 +177,17 @@ const completion = await openai.chat.completions.create({
 # Install dependencies
 pnpm install
 
-# Option 1: Full API testing with Vercel CLI
+# Set up local environment variables
+cp env.example .env
+# Edit .env and add your OpenAI API key
+
+# Option 1: Full API testing with Vercel CLI (Recommended)
 vercel dev --listen 3000
 # Then visit: http://localhost:3000/chat-widget.html
 
 # Option 2: Frontend-only testing (no API calls)
-# Simply open demo.html or public/chat-widget.html in your browser
+# Simply open public/chat-widget.html in your browser
 ```
-
-**Note:** For full functionality testing (including OpenAI API calls), use Option 1 with your `.env.local` file configured.
 
 ### Testing
 
@@ -210,9 +212,11 @@ vercel dev --listen 3000
 
 ### API Errors
 
-1. Verify your OpenAI API key is set correctly in Vercel
-2. Check that your OpenAI account has sufficient credits
-3. Review the Vercel function logs for detailed error messages
+1. **For Production**: Verify your OpenAI API key is set correctly in Vercel Dashboard
+2. **For Local Development**: Ensure you have a `.env` file with `OPENAI_API_KEY` set
+3. Check that your OpenAI account has sufficient credits
+4. Review the Vercel function logs for detailed error messages
+5. Try restarting `vercel dev` if environment variables were recently changed
 
 ### Squarespace Integration Issues
 
@@ -242,8 +246,3 @@ If you need help with setup or customization, please:
 1. Check this documentation first
 2. Review the troubleshooting section
 3. Check Vercel and OpenAI logs for error messages
-4. Contact support with specific error details
-
-## License
-
-This project is provided under the ISC license for the Upwork client.
