@@ -19,7 +19,7 @@ This guide will help you deploy the AI chat widget to your Squarespace website i
 
 ### Option A: One-Click Deploy (Recommended)
 
-1. Click this button: [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/squarespace-openai-chat)
+1. Click this button: [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/ivelin-web/squarespace-openai-chat)
 2. Connect your GitHub account if needed
 3. Name your project (e.g., "my-chat-widget")
 4. Add environment variable:

@@ -15,7 +15,7 @@ A professional OpenAI-powered chat widget that can be easily embedded into Squar
 
 ### 1. Deploy to Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/squarespace-openai-chat)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/ivelin-web/squarespace-openai-chat)
 
 Or manually:
 
@@ -177,11 +177,15 @@ const completion = await openai.chat.completions.create({
 # Install dependencies
 pnpm install
 
-# Start local development server
-pnpm dev
+# Option 1: Full API testing with Vercel CLI
+vercel dev --listen 3000
+# Then visit: http://localhost:3000/chat-widget.html
 
-# Test the widget at http://localhost:3000/chat-widget.html
+# Option 2: Frontend-only testing (no API calls)
+# Simply open demo.html or public/chat-widget.html in your browser
 ```
+
+**Note:** For full functionality testing (including OpenAI API calls), use Option 1 with your `.env.local` file configured.
 
 ### Testing
 

@@ -4,7 +4,6 @@
   "description": "OpenAI Chat Integration for Squarespace",
   "main": "index.js",
   "scripts": {
-    "dev": "vercel dev",
     "build": "vercel build",
     "deploy": "vercel"
   },
