@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat Assistant - Demo</title>
+    <style>
+        .ai-chat-widget {
+            max-width: 600px;
+            margin: 20px auto;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chat-header h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        .task-selector {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .task-selector label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .task-dropdown {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            transition: border-color 0.2s ease;
+        }
+
+        .task-dropdown:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+            background: #fafafa;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-content {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+
+        .message.user .message-content {
+            background: #667eea;
+            color: white;
+            border-bottom-right-radius: 6px;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e1e5e9;
+            border-bottom-left-radius: 6px;
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 20px;
+            gap: 12px;
+            background: white;
+            border-top: 1px solid #eee;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 24px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .input-field:focus {
+            border-color: #667eea;
+        }
+
+        .send-button {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .send-button:hover:not(:disabled) {
+            background: #5a6fd8;
+        }
+
+        .send-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            color: #666;
+            font-size: 14px;
+            padding: 12px 16px;
+        }
+
+        .loading.active {
+            display: flex;
+        }
+
+        .loading-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #eee;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 12px 16px;
+            margin: 16px 20px;
+            border-radius: 8px;
+            border: 1px solid #fcc;
+            font-size: 14px;
+        }
+
+        .welcome-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+            font-style: italic;
+        }
+
+        @media (max-width: 640px) {
+            .ai-chat-widget {
+                margin: 10px;
+                border-radius: 8px;
+            }
+            
+            .chat-messages {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="ai-chat-widget">
+        <div class="chat-header">
+            <h3>Buildla Assistant Demo</h3>
+            <p>Testing the Swedish bathroom renovation assistant</p>
+        </div>
+        
+        <div class="task-selector">
+            <label for="taskSelect">Choose service (for testing):</label>
+            <select id="taskSelect" class="task-dropdown">
+                <option value="">Select a service...</option>
+            </select>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="welcome-message">
+                Please select a service above to start testing
+            </div>
+        </div>
+
+        <div class="loading" id="loadingIndicator">
+            <div class="loading-spinner"></div>
+            <span>AI is thinking...</span>
+        </div>
+
+        <div class="chat-input">
+            <input 
+                type="text" 
+                id="messageInput" 
+                class="input-field" 
+                placeholder="Type your message (will respond in Swedish)..."
+                disabled
+            >
+            <button id="sendButton" class="send-button" disabled>Send</button>
+        </div>
+    </div>
+
+    <script>
+        class ChatWidget {
+            constructor() {
+                // Replace with your deployed Vercel URL
+                this.API_BASE = window.location.origin;
+                
+                this.taskSelect = document.getElementById('taskSelect');
+                this.chatMessages = document.getElementById('chatMessages');
+                this.messageInput = document.getElementById('messageInput');
+                this.sendButton = document.getElementById('sendButton');
+                this.loadingIndicator = document.getElementById('loadingIndicator');
+                
+                this.messages = [];
+                this.currentTask = null;
+                
+                this.init();
+            }
+
+            async init() {
+                await this.loadTasks();
+                this.setupEventListeners();
+            }
+
+            async loadTasks() {
+                try {
+                    const response = await fetch(`${this.API_BASE}/api/tasks`);
+                    const data = await response.json();
+                    
+                    if (data.tasks) {
+                        this.populateTaskDropdown(data.tasks);
+                    }
+                } catch (error) {
+                    console.error('Failed to load tasks:', error);
+                    this.showError('Failed to load available services. Please refresh the page.');
+                }
+            }
+
+            populateTaskDropdown(tasks) {
+                tasks.forEach(task => {
+                    const option = document.createElement('option');
+                    option.value = task.id;
+                    option.textContent = `${task.name} (${task.description})`;
+                    option.title = task.description;
+                    this.taskSelect.appendChild(option);
+                });
+            }
+
+            setupEventListeners() {
+                this.taskSelect.addEventListener('change', (e) => {
+                    this.handleTaskChange(e.target.value);
+                });
+
+                this.sendButton.addEventListener('click', () => {
+                    this.sendMessage();
+                });
+
+                this.messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+            }
+
+            handleTaskChange(taskId) {
+                if (taskId) {
+                    this.currentTask = taskId;
+                    this.messages = [];
+                    this.clearChat();
+                    this.enableInput();
+                    this.addWelcomeMessage(taskId);
+                } else {
+                    this.currentTask = null;
+                    this.disableInput();
+                    this.clearChat();
+                    this.showWelcomeScreen();
+                }
+            }
+
+            enableInput() {
+                this.messageInput.disabled = false;
+                this.sendButton.disabled = false;
+                this.messageInput.focus();
+            }
+
+            disableInput() {
+                this.messageInput.disabled = true;
+                this.sendButton.disabled = true;
+            }
+
+            clearChat() {
+                this.chatMessages.innerHTML = '';
+            }
+
+            showWelcomeScreen() {
+                this.chatMessages.innerHTML = `
+                    <div class="welcome-message">
+                        Please select a service above to start testing
+                    </div>
+                `;
+            }
+
+            addWelcomeMessage(taskId) {
+                this.addMessage('assistant', `Testing started! The AI will respond in Swedish as per the client's prompt. Try asking about bathroom renovation in Swedish or English.`);
+            }
+
+            async sendMessage() {
+                const message = this.messageInput.value.trim();
+                if (!message || !this.currentTask) return;
+
+                this.addMessage('user', message);
+                this.messages.push({ role: 'user', content: message });
+                this.messageInput.value = '';
+                
+                this.setLoading(true);
+
+                try {
+                    const response = await fetch(`${this.API_BASE}/api/chat`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            messages: this.messages,
+                            taskId: this.currentTask
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Failed to get response');
+                    }
+
+                    this.addMessage('assistant', data.reply);
+                    this.messages.push({ role: 'assistant', content: data.reply });
+
+                } catch (error) {
+                    console.error('Chat error:', error);
+                    this.showError('Sorry, I encountered an error. Please try again.');
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+
+            addMessage(role, content) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${role}`;
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                contentDiv.textContent = content;
+                
+                messageDiv.appendChild(contentDiv);
+                this.chatMessages.appendChild(messageDiv);
+                
+                this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+            }
+
+            setLoading(isLoading) {
+                if (isLoading) {
+                    this.loadingIndicator.classList.add('active');
+                    this.disableInput();
+                } else {
+                    this.loadingIndicator.classList.remove('active');
+                    this.enableInput();
+                }
+            }
+
+            showError(message) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = message;
+                
+                this.chatMessages.appendChild(errorDiv);
+                this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+            }
+        }
+
+        // Initialize the chat widget when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new ChatWidget();
+        });
+    </script>
+</body>
+</html> 
