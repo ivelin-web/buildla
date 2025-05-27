@@ -163,7 +163,7 @@ In `api/chat.js`, you can adjust the OpenAI settings:
 
 ```javascript
 const completion = await openai.chat.completions.create({
-  model: 'gpt-4.1-nano',
+  model: 'gpt-4.1-mini',
   max_tokens: 1000, // Adjust response length
   temperature: 0.7, // Adjust creativity (0-1)
 });
@@ -235,7 +235,7 @@ vercel dev --listen 3000
 
 To minimize OpenAI costs:
 
-1. Use `gpt-4.1-nano` instead of `gpt-4o` for lower costs
+1. Use `gpt-4.1-mini` instead of `gpt-4o` for lower costs
 2. Reduce `max_tokens` if shorter responses are acceptable
 3. Set up usage monitoring in your OpenAI dashboard
 
