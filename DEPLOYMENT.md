@@ -104,14 +104,6 @@ vercel --prod
 2. **API Key**: Verify your OpenAI API key is set in Vercel environment variables
 3. **Credits**: Check your OpenAI account has available credits
 
-### Error Messages
-
-| Error | Solution |
-|-------|----------|
-| "Failed to load available services" | Vercel URL is wrong or deployment failed |
-| "OpenAI API key not configured" | Add OPENAI_API_KEY to Vercel environment variables |
-| "Failed to get response from OpenAI" | Check OpenAI credits and API key validity |
-
 ## Going Live Checklist
 
 - [ ] OpenAI API key is set in Vercel
@@ -132,7 +124,7 @@ vercel --prod
 
 ### Add More Services
 
-To add new service types (beyond the 5 included):
+To add new service types:
 
 1. Edit the task configuration in `api/chat.js` and `api/tasks.js`
 2. Redeploy with `vercel --prod`
@@ -143,14 +135,5 @@ To add new service types (beyond the 5 included):
 1. Edit the CSS in your embedded code
 2. Update colors, fonts, sizes to match your brand
 3. Save changes in Squarespace
-
-## Support
-
-If you encounter issues:
-
-1. Check the troubleshooting section above
-2. Review Vercel function logs for errors
-3. Verify OpenAI API key and credits
-4. Contact support with specific error messages
 
 **Deployment complete!** Your AI chat widget should now be live on your Squarespace website.
