@@ -118,8 +118,9 @@ export default async function handler(req, res) {
     const completion = await openai.chat.completions.create({
       model: 'gpt-4.1-nano',
       messages: chatMessages,
-      max_tokens: 1500, // Increased for detailed price calculations
-      temperature: 0.2, // Lower temperature for precise calculations
+      max_tokens: 2048,
+      temperature: 0.20,
+      top_p: 1.00,
     });
 
     const reply = completion.choices[0].message.content;
