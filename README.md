@@ -68,13 +68,7 @@ squarespace-openai-chat/
 
 ## Available Tasks
 
-The widget supports 5 specialized service types:
-
-1. **Construction Work Offers** - General construction projects and estimates
-2. **Home Renovation** - Room-specific renovations and planning
-3. **Landscaping Services** - Garden design and outdoor projects  
-4. **Painting Services** - Interior and exterior painting quotes
-5. **Roofing Services** - Roof repair and replacement estimates
+The widget can support many different tasks for different types of assistance
 
 ## API Endpoints
 
