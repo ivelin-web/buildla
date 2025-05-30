@@ -1,6 +1,6 @@
 # AI Chat Widget for Squarespace
 
-A professional OpenAI-powered chat widget that can be easily embedded into Squarespace websites. Features multiple task types with specialized prompts for construction, renovation, landscaping, painting, and roofing services.
+A professional OpenAI-powered chat widget that can be easily embedded into Squarespace websites. Features multiple task types with specialized prompts for different services.
 
 ## Features
 
