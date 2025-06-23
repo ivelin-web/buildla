@@ -1,242 +1,84 @@
-# AI Chat Widget for Squarespace
+# Buildla AI Assistant - Next.js App
 
-A professional OpenAI-powered chat widget that can be easily embedded into Squarespace websites. Features multiple task types with specialized prompts for different services.
+A modern Next.js application for managing AI-powered chat assistants that can be embedded in Squarespace websites.
 
 ## Features
 
-✅ **Secure API Key Handling** - Your OpenAI API key stays safe on the server  
-✅ **Multi-Task Support** - 5 specialized service types with dedicated prompts  
-✅ **Clean UI** - Modern, responsive design that fits any website  
-✅ **Easy Squarespace Integration** - Simple copy-paste embedding  
-✅ **Mobile Responsive** - Works perfectly on all devices  
-✅ **Real-time Chat** - Fast responses with loading indicators  
+- 🤖 **AI Chat Assistants** - Create custom AI assistants with OpenAI
+- 💰 **Automated Quotes** - Generate pricing quotes automatically  
+- 📊 **Dashboard** - Manage assistants, view offers, and monitor performance
+- 🎨 **Modern UI** - Built with Tailwind CSS and shadcn/ui components
+- 🔗 **Easy Embedding** - Simple iframe code for Squarespace integration
 
-## Quick Start
+## Setup
 
-### 1. Deploy to Vercel
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/ivelin-web/squarespace-openai-chat)
+2. **Environment Setup:**
+   Create a `.env.local` file with:
+   ```
+   OPENAI_API_KEY=your_openai_api_key_here
+   NEXT_PUBLIC_APP_URL=http://localhost:3000
+   ```
 
-Or manually:
+3. **Start development server:**
+   ```bash
+   npm run dev
+   ```
 
-```bash
-# Clone the repository
-git clone <repository-url>
-cd squarespace-openai-chat
+4. **Access the application:**
+   - Homepage: http://localhost:3000
+   - Dashboard: http://localhost:3000/dashboard
+   - Auth: http://localhost:3000/auth
 
-# Install dependencies
-pnpm install
+## Demo Credentials
 
-# Set up environment variables  
-cp env.example .env
-# Edit .env and add your OpenAI API key
-
-# Deploy to Vercel
-pnpm deploy
-```
-
-### 2. Configure Environment Variables
-
-In your Vercel dashboard:
-
-1. Go to your project settings
-2. Navigate to "Environment Variables"
-3. Add: `OPENAI_API_KEY` with your OpenAI API key
-
-### 3. Embed in Squarespace
-
-1. Copy the code from `squarespace-embed-code.html`
-2. Replace `YOUR_VERCEL_URL` with your actual Vercel deployment URL
-3. In Squarespace, add a Code Block where you want the chat
-4. Paste the code and save
-
-## Project Structure
-
-```
-squarespace-openai-chat/
-├── api/
-│   ├── chat.js          # Main chat endpoint
-│   └── tasks.js         # Tasks configuration endpoint
-├── public/
-│   └── chat-widget.html # Standalone widget demo
-├── squarespace-embed-code.html # Squarespace embedding code
-├── package.json
-├── vercel.json
-├── env.example
-└── README.md
-```
-
-## Available Tasks
-
-The widget can support many different tasks for different types of assistance
+For the admin dashboard:
+- Email: `admin@buildla.com`
+- Password: `admin123`
 
 ## API Endpoints
 
-### `GET /api/tasks`
-Returns available task types for the dropdown menu.
+- `POST /api/chat` - Chat with AI assistant
+- `GET /api/tasks` - Get available tasks/assistants
+- `POST /api/admin/tasks` - Create/manage assistants (auth required)
+- `GET /api/admin/offers` - View generated offers (auth required)
+- `POST /api/save-offer` - Save customer offers
 
-**Response:**
-```json
-{
-  "tasks": [
-    {
-      "id": "construction",
-      "name": "Construction Work Offers", 
-      "description": "Get quotes for construction projects"
-    }
-  ]
-}
-```
+## Tech Stack
 
-### `POST /api/chat`
-Processes chat messages with OpenAI.
+- **Next.js 15** - App Router
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Styling
+- **shadcn/ui** - UI components
+- **OpenAI API** - AI functionality
 
-**Request:**
-```json
-{
-  "messages": [
-    {"role": "user", "content": "I need help with a kitchen renovation"}
-  ],
-  "taskId": "renovation"
-}
-```
+## Migration from Vercel Functions
 
-**Response:**
-```json
-{
-  "reply": "I'd be happy to help with your kitchen renovation...",
-  "taskName": "Home Renovation"
-}
-```
+This app replaces the previous Vercel serverless functions setup with a full Next.js application for better scalability and development experience.
 
-## Customization
+## Deployment
 
-### Adding New Tasks
-
-1. Edit `api/chat.js` and add your task to `TASK_PROMPTS`:
-
-```javascript
-const TASK_PROMPTS = {
-  // ... existing tasks
-  plumbing: {
-    name: "Plumbing Services",
-    systemPrompt: `You are a professional plumber. Help customers with plumbing estimates and advice.`
-  }
-};
-```
-
-2. Edit `api/tasks.js` and add the corresponding task info:
-
-```javascript
-const TASKS = {
-  // ... existing tasks
-  plumbing: {
-    id: 'plumbing',
-    name: 'Plumbing Services',
-    description: 'Plumbing repairs and installations'
-  }
-};
-```
-
-### Styling Customization
-
-The widget uses CSS custom properties for easy theming. Edit the styles in `squarespace-embed-code.html`:
-
-```css
-#ai-chat-container .ai-chat-widget {
-  /* Change colors, fonts, sizes, etc. */
-  background: #ffffff;
-  border-radius: 12px;
-  font-family: 'Your Custom Font', sans-serif;
-}
-```
-
-### OpenAI Model Configuration
-
-In `api/chat.js`, you can adjust the OpenAI settings:
-
-```javascript
-const completion = await openai.chat.completions.create({
-  model: 'gpt-4.1-mini',
-  max_tokens: 1000, // Adjust response length
-  temperature: 0.7, // Adjust creativity (0-1)
-});
-```
-
-## Development
-
-### Local Development
+Deploy to Vercel:
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Set up local environment variables
-cp env.example .env
-# Edit .env and add your OpenAI API key
-
-# Option 1: Full API testing with Vercel CLI (Recommended)
-vercel dev --listen 3000
-# Then visit: http://localhost:3000/chat-widget.html
-
-# Option 2: Frontend-only testing (no API calls)
-# Simply open public/chat-widget.html in your browser
+npm run build
+# Deploy with Vercel CLI or connect GitHub repo
 ```
 
-### Testing
+Make sure to set the `OPENAI_API_KEY` environment variable in your deployment platform.
 
-1. Visit the deployed widget URL
-2. Select a service type from the dropdown
-3. Start chatting to test the OpenAI integration
-4. Check browser console for any errors
+## Usage
 
-## Environment Variables
+1. **Create AI Assistants** - Define tasks and system prompts
+2. **Test in Dashboard** - Use the chat preview to test functionality  
+3. **Get Embed Code** - Copy the iframe code for your assistant
+4. **Embed in Squarespace** - Paste the code in a Code Block
+5. **Monitor Performance** - View generated offers and statistics
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `OPENAI_API_KEY` | Your OpenAI API key | Yes |
+## Database Integration
 
-## Troubleshooting
-
-### Widget Not Loading
-
-1. Check that `YOUR_VERCEL_URL` is correctly replaced in the embed code
-2. Verify your Vercel deployment is successful
-3. Check browser console for CORS or network errors
-
-### API Errors
-
-1. **For Production**: Verify your OpenAI API key is set correctly in Vercel Dashboard
-2. **For Local Development**: Ensure you have a `.env` file with `OPENAI_API_KEY` set
-3. Check that your OpenAI account has sufficient credits
-4. Review the Vercel function logs for detailed error messages
-5. Try restarting `vercel dev` if environment variables were recently changed
-
-### Squarespace Integration Issues
-
-1. Make sure you're using a Code Block (not other block types)
-2. Try pasting the code in different sections of your page
-3. Check that Squarespace allows JavaScript execution in your plan
-
-## Security
-
-- ✅ API key is never exposed to the frontend
-- ✅ All requests go through your secure Vercel backend
-- ✅ CORS configured for secure cross-origin requests
-- ✅ Input validation on all API endpoints
-
-## Cost Optimization
-
-To minimize OpenAI costs:
-
-1. Use `gpt-4.1-mini` instead of `gpt-4o` for lower costs
-2. Reduce `max_tokens` if shorter responses are acceptable
-3. Set up usage monitoring in your OpenAI dashboard
-
-## Support
-
-If you need help with setup or customization, please:
-
-1. Check this documentation first
-2. Review the troubleshooting section
-3. Check Vercel and OpenAI logs for error messages
+Currently uses in-memory storage. Ready for database integration with Supabase or similar.

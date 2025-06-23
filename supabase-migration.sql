@@ -1,15 +1,47 @@
-import OpenAI from 'openai';
+-- Create assistants table
+CREATE TABLE IF NOT EXISTS public.assistants (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    name text NOT NULL,
+    description text NOT NULL,
+    system_prompt text NOT NULL,
+    category text,
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now())
+);
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS assistants_created_at_idx ON public.assistants(created_at DESC);
+CREATE INDEX IF NOT EXISTS assistants_name_idx ON public.assistants(name);
+CREATE INDEX IF NOT EXISTS assistants_category_idx ON public.assistants(category);
 
-// Task-specific prompts configuration
-const TASK_PROMPTS = {
-  bathroom: {
-    name: "Badrumsrenovering",
-    systemPrompt: `Buildla Offertassistent – Badrum
+-- Set up Row Level Security (RLS)
+ALTER TABLE public.assistants ENABLE ROW LEVEL SECURITY;
+
+-- Create policy to allow all operations for now
+-- You can modify this based on your authentication requirements
+CREATE POLICY "Allow all operations on assistants" ON public.assistants
+    FOR ALL USING (true);
+
+-- Create updated_at trigger function
+CREATE OR REPLACE FUNCTION public.handle_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Create trigger to automatically update updated_at
+CREATE TRIGGER handle_assistants_updated_at
+    BEFORE UPDATE ON public.assistants
+    FOR EACH ROW
+    EXECUTE PROCEDURE public.handle_updated_at();
+
+-- Insert existing bathroom renovation assistant
+INSERT INTO public.assistants (name, description, system_prompt, category) VALUES (
+    'Badrumsrenovering',
+    'Få prisförslag för din badrumsrenovering',
+    'Buildla Offertassistent – Badrum
 
 Du är Buildla Offertassistent och hjälper användare att få ett prisförslag för badrumsrenovering. Följ den här strukturen exakt. Du svarar alltid på svenska. Du improviserar aldrig.
 
@@ -80,66 +112,6 @@ total = (arbetskostnad + materialkostnad + transportkostnad + parkeringskostnad 
 
 VIKTIGT
 Svara alltid på svenska
-Följ hårdkodad modell exakt – ingen improvisation`
-  }
-};
-
-export default async function handler(req, res) {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  try {
-    const { messages, taskId } = req.body;
-
-    if (!messages || !Array.isArray(messages)) {
-      return res.status(400).json({ error: 'Messages array is required' });
-    }
-
-    if (!taskId || !TASK_PROMPTS[taskId]) {
-      return res.status(400).json({ error: 'Valid taskId is required' });
-    }
-
-    // Get the system prompt for the selected task
-    const systemPrompt = TASK_PROMPTS[taskId].systemPrompt;
-
-    // Prepare messages with system prompt
-    const chatMessages = [
-      { role: 'system', content: systemPrompt },
-      ...messages
-    ];
-
-    // Call OpenAI API
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4.1-mini',
-      messages: chatMessages,
-      max_tokens: 2048,
-      temperature: 0.20,
-      top_p: 1.00,
-    });
-
-    const reply = completion.choices[0].message.content;
-
-    return res.status(200).json({ 
-      reply,
-      taskName: TASK_PROMPTS[taskId].name
-    });
-
-  } catch (error) {
-    console.error('OpenAI API Error:', error);
-    
-    if (error.status === 401) {
-      return res.status(500).json({ error: 'OpenAI API key not configured' });
-    }
-    
-    return res.status(500).json({ 
-      error: 'Failed to get response from OpenAI',
-      details: error.message 
-    });
-  }
-} 
+Följ hårdkodad modell exakt – ingen improvisation',
+    'Renovation'
+) ON CONFLICT (id) DO NOTHING;
