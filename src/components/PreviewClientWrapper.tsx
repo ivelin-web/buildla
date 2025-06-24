@@ -11,14 +11,9 @@ interface PreviewClientWrapperProps {
 
 export default function PreviewClientWrapper({ initialSettings }: PreviewClientWrapperProps) {
   const [modelSettings, setModelSettings] = useState<ModelSettings | null>(initialSettings || null);
-  const [isSettingsCollapsed, setIsSettingsCollapsed] = useState(false);
 
   const handleSettingsChange = (settings: ModelSettings) => {
     setModelSettings(settings);
-  };
-
-  const toggleSettingsCollapse = () => {
-    setIsSettingsCollapsed(!isSettingsCollapsed);
   };
 
   return (
@@ -27,8 +22,6 @@ export default function PreviewClientWrapper({ initialSettings }: PreviewClientW
       <div className="flex-shrink-0">
         <ModelSettingsPanel
           onSettingsChange={handleSettingsChange}
-          isCollapsed={isSettingsCollapsed}
-          onToggleCollapse={toggleSettingsCollapse}
         />
       </div>
 

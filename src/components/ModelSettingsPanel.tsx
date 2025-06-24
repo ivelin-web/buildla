@@ -15,14 +15,10 @@ import { showSuccess, showError } from '@/lib/toast';
 
 interface ModelSettingsPanelProps {
   onSettingsChange: (settings: ModelSettings) => void;
-  isCollapsed: boolean;
-  onToggleCollapse: () => void;
 }
 
 export default function ModelSettingsPanel({ 
-  onSettingsChange, 
-  isCollapsed, 
-  onToggleCollapse 
+  onSettingsChange
 }: ModelSettingsPanelProps) {
   const [settings, setSettings] = useState<ModelSettings | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -135,32 +131,19 @@ export default function ModelSettingsPanel({
   if (!settings) return null;
 
   return (
-    <Card className={`transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-80'}`}>
+    <Card className="w-80">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className={isCollapsed ? 'hidden' : 'block'}>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              Model Settings
-              {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-            </CardTitle>
-            <CardDescription>
-              Configure AI model parameters for testing
-            </CardDescription>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onToggleCollapse}
-            className="p-2"
-          >
-            <Settings className="w-4 h-4" />
-          </Button>
-        </div>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Settings className="w-5 h-5" />
+          Model Settings
+          {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+        </CardTitle>
+        <CardDescription>
+          Configure AI model parameters for testing
+        </CardDescription>
       </CardHeader>
 
-      {!isCollapsed && (
-        <CardContent className="space-y-6">
+      <CardContent className="space-y-6">
           {/* Model Selection */}
           <div className="space-y-2">
             <Label htmlFor="model" className="text-sm font-medium">
@@ -170,13 +153,13 @@ export default function ModelSettingsPanel({
               value={settings.model} 
               onValueChange={(value) => handleSettingChange('model', value)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full cursor-pointer px-3 py-6">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {MODEL_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    <div>
+                  <SelectItem key={option.value} value={option.value} className="px-3 py-2 cursor-pointer">
+                    <div className="w-full text-left">
                       <div className="font-medium">{option.label}</div>
                       <div className="text-xs text-gray-500">{option.cost}</div>
                     </div>
@@ -198,7 +181,7 @@ export default function ModelSettingsPanel({
               max={2}
               min={0}
               step={0.1}
-              className="w-full"
+              className="w-full cursor-pointer"
             />
             <p className="text-xs text-gray-500">
               Controls randomness. Lower = more focused, Higher = more creative
@@ -217,6 +200,7 @@ export default function ModelSettingsPanel({
               max={32768}
               value={settings.max_tokens}
               onChange={(e) => handleSettingChange('max_tokens', parseInt(e.target.value))}
+              className="cursor-pointer"
             />
             <p className="text-xs text-gray-500">
               Maximum response length (100-32,768)
@@ -235,7 +219,7 @@ export default function ModelSettingsPanel({
               max={1}
               min={0}
               step={0.05}
-              className="w-full"
+              className="w-full cursor-pointer"
             />
             <p className="text-xs text-gray-500">
               Alternative to temperature. Controls diversity of responses
@@ -248,13 +232,12 @@ export default function ModelSettingsPanel({
             size="sm"
             onClick={resetToDefaults}
             disabled={isSaving}
-            className="w-full"
+            className="w-full cursor-pointer"
           >
             <RotateCcw className="w-4 h-4 mr-2" />
             Reset to Defaults
           </Button>
-        </CardContent>
-      )}
+      </CardContent>
     </Card>
   );
 }
