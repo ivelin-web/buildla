@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { showError } from '@/lib/toast';
 
 export default function AuthPage() {
   const [email, setEmail] = useState('');
@@ -23,7 +24,7 @@ export default function AuthPage() {
       localStorage.setItem('auth-token', 'admin-token-' + Date.now());
       router.push('/dashboard');
     } else {
-      alert('Invalid credentials. Use admin@buildla.com / admin123');
+      showError('Invalid credentials', 'Please use admin@buildla.com / admin123');
     }
     
     setIsLoading(false);

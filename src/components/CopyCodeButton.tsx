@@ -2,6 +2,7 @@
 
 import { Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { showSuccess } from '@/lib/toast';
 
 const generateSnippet = (taskId: string = 'bathroom') => {
   return `<!-- Buildla AI Chat Widget -->
@@ -29,7 +30,7 @@ function loadBuildlaChat(taskId) {
 export default function CopyCodeButton() {
   const handleCopy = () => {
     navigator.clipboard.writeText(generateSnippet());
-    alert('HTML code copied to clipboard!');
+    showSuccess('Code copied to clipboard!', 'You can now paste it into your Squarespace site.');
   };
 
   return (

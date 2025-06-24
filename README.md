@@ -1,84 +1,128 @@
-# Buildla AI Assistant - Next.js App
+# Buildla AI Assistant
 
-A modern Next.js application for managing AI-powered chat assistants that can be embedded in Squarespace websites.
+A Next.js platform that enables businesses to create intelligent AI assistants for their Squarespace websites, with specialized focus on construction and renovation services.
 
 ## Features
 
-- 🤖 **AI Chat Assistants** - Create custom AI assistants with OpenAI
-- 💰 **Automated Quotes** - Generate pricing quotes automatically  
-- 📊 **Dashboard** - Manage assistants, view offers, and monitor performance
-- 🎨 **Modern UI** - Built with Tailwind CSS and shadcn/ui components
-- 🔗 **Easy Embedding** - Simple iframe code for Squarespace integration
+- 🤖 **AI Assistant Management** - Create, edit, and delete custom AI assistants with OpenAI
+- 💰 **Automated Quote Generation** - Specialized bathroom renovation pricing with Swedish market logic
+- 📊 **Dashboard** - Comprehensive management interface with statistics and performance monitoring
+- 🎨 **Modern UI** - Built with Next.js 15, Tailwind CSS 4, and Radix UI components
+- 🔗 **Embeddable Chat Widget** - Easy integration code for external websites
+- 🇸🇪 **Swedish Market Focus** - ROT tax deduction calculations and local pricing
+
+## Tech Stack
+
+- **Next.js 15.3.3** - App Router with React 19
+- **TypeScript** - Full type safety
+- **Supabase** - PostgreSQL database with real-time features
+- **OpenAI API** - AI chat completions (gpt-4.1-nano)
+- **Tailwind CSS 4** - Modern styling
+- **Radix UI** - Accessible component library
 
 ## Setup
 
 1. **Install dependencies:**
    ```bash
-   npm install
+   pnpm install
    ```
 
 2. **Environment Setup:**
    Create a `.env.local` file with:
    ```
    OPENAI_API_KEY=your_openai_api_key_here
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
    NEXT_PUBLIC_APP_URL=http://localhost:3000
    ```
 
-3. **Start development server:**
+3. **Database Setup:**
    ```bash
-   npm run dev
+   # Run the migration to set up Supabase tables
+   # Execute the SQL in supabase-migration.sql in your Supabase dashboard
    ```
 
-4. **Access the application:**
-   - Homepage: http://localhost:3000
-   - Dashboard: http://localhost:3000/dashboard
-   - Auth: http://localhost:3000/auth
+4. **Start development server:**
+   ```bash
+   pnpm run dev
+   ```
 
-## Demo Credentials
+## Application Routes
 
-For the admin dashboard:
-- Email: `admin@buildla.com`
-- Password: `admin123`
+### Public Routes
+- `/` - Landing page showcasing the platform
+- `/auth` - Authentication page
+
+### Dashboard Routes (Protected)
+- `/dashboard` - Overview with statistics (assistants, offers, revenue)
+- `/dashboard/assistants` - Manage AI assistants (CRUD operations)
+- `/dashboard/preview` - Live chat widget preview and testing
+- `/dashboard/offers` - View and manage customer offers
 
 ## API Endpoints
 
-- `POST /api/chat` - Chat with AI assistant
-- `GET /api/tasks` - Get available tasks/assistants
-- `POST /api/admin/tasks` - Create/manage assistants (auth required)
-- `GET /api/admin/offers` - View generated offers (auth required)
-- `POST /api/save-offer` - Save customer offers
+- `POST /api/chat` - Chat interactions with OpenAI integration
+- `GET /api/assistants` - Fetch available assistants from database
 
-## Tech Stack
+## Demo Credentials
 
-- **Next.js 15** - App Router
-- **TypeScript** - Type safety
-- **Tailwind CSS** - Styling
-- **shadcn/ui** - UI components
-- **OpenAI API** - AI functionality
+For testing the dashboard:
+- Email: `admin@buildla.com`
+- Password: `admin123`
 
-## Migration from Vercel Functions
+## Database Schema
 
-This app replaces the previous Vercel serverless functions setup with a full Next.js application for better scalability and development experience.
+The application uses Supabase with the following main table:
+
+```sql
+assistants (
+  id uuid PRIMARY KEY,
+  name text NOT NULL,
+  description text NOT NULL,
+  system_prompt text NOT NULL,
+  category text,
+  created_at timestamp,
+  updated_at timestamp
+)
+```
+
+## Key Features
+
+### AI Assistant Management
+- Create custom assistants with specific system prompts
+- Categorize assistants by business type
+- Real-time database storage with Supabase
+
+### Specialized Quote System
+- Bathroom renovation pricing calculator
+- Complex Swedish market logic including:
+  - Labor and material cost calculations
+  - Transport and parking fees
+  - ROT tax deduction (30% Swedish tax benefit)
+  - Area-based pricing with modifiers
+
+### Chat Widget Integration
+- Embeddable chat widget for external websites
+- Multi-assistant support with dynamic selection
+- Copy-to-clipboard integration code
 
 ## Deployment
 
-Deploy to Vercel:
+Deploy to Vercel or similar platform:
 
 ```bash
-npm run build
-# Deploy with Vercel CLI or connect GitHub repo
+pnpm run build
 ```
 
-Make sure to set the `OPENAI_API_KEY` environment variable in your deployment platform.
+Required environment variables:
+- `OPENAI_API_KEY` - OpenAI API key
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key
 
 ## Usage
 
-1. **Create AI Assistants** - Define tasks and system prompts
-2. **Test in Dashboard** - Use the chat preview to test functionality  
-3. **Get Embed Code** - Copy the iframe code for your assistant
-4. **Embed in Squarespace** - Paste the code in a Code Block
-5. **Monitor Performance** - View generated offers and statistics
-
-## Database Integration
-
-Currently uses in-memory storage. Ready for database integration with Supabase or similar.
+1. **Set up assistants** - Create and configure AI assistants in the dashboard
+2. **Test functionality** - Use the preview page to test chat interactions
+3. **Get embed code** - Copy the widget code for website integration
+4. **Monitor performance** - Track offers and revenue in the dashboard
+5. **Manage quotes** - Review and process customer inquiries

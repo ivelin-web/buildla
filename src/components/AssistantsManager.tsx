@@ -14,7 +14,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { createAssistant, updateAssistant, deleteAssistant } from '@/lib/actions/assistants';
+import { showSuccess, showError } from '@/lib/toast';
 import { type Assistant } from '@/types';
 
 interface AssistantsManagerProps {
@@ -31,27 +43,29 @@ export default function AssistantsManager({ assistants }: AssistantsManagerProps
     e.preventDefault();
     setIsSubmitting(true);
     
+    const form = e.currentTarget;
+    
     try {
-      const formData = new FormData(e.currentTarget);
+      const formData = new FormData(form);
       await createAssistant(formData);
       setCreateDialogOpen(false);
-      e.currentTarget.reset();
+      form.reset();
+      showSuccess('Assistant created successfully!', 'Your new AI assistant is ready to use.');
     } catch (error) {
       console.error('Error creating assistant:', error);
-      alert('Failed to create assistant. Please try again.');
+      showError('Failed to create assistant', 'Please check your inputs and try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDeleteAssistant = async (assistantId: string) => {
-    if (!confirm('Are you sure you want to delete this assistant?')) return;
-    
+  const handleConfirmDelete = async (assistantId: string) => {
     try {
       await deleteAssistant(assistantId);
+      showSuccess('Assistant deleted successfully!', 'The assistant has been permanently removed.');
     } catch (error) {
       console.error('Error deleting assistant:', error);
-      alert('Failed to delete assistant. Please try again.');
+      showError('Failed to delete assistant', 'Please try again.');
     }
   };
 
@@ -70,9 +84,10 @@ export default function AssistantsManager({ assistants }: AssistantsManagerProps
       await updateAssistant(editingAssistant.id, formData);
       setEditingAssistant(null);
       setEditDialogOpen(false);
+      showSuccess('Assistant updated successfully!', 'Your changes have been saved.');
     } catch (error) {
       console.error('Error updating assistant:', error);
-      alert('Failed to update assistant. Please try again.');
+      showError('Failed to update assistant', 'Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -114,14 +129,34 @@ export default function AssistantsManager({ assistants }: AssistantsManagerProps
                 >
                   Edit
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="text-red-600 border-red-200 cursor-pointer"
-                  onClick={() => handleDeleteAssistant(assistant.id)}
-                >
-                  Delete
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-red-600 border-red-200 cursor-pointer"
+                    >
+                      Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Assistant</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete "{assistant.name}"? This action cannot be undone and will permanently remove the assistant and all its configuration.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleConfirmDelete(assistant.id)}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Delete Assistant
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           ))}
