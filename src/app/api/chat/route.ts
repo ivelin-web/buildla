@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { getAssistantById } from '@/lib/actions/assistants';
+import { getModelSettings } from '@/lib/actions/model-settings';
 import { ChatMessage, ChatResponse } from '@/types';
+import { ModelSettings } from '@/lib/supabase/types';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -10,7 +12,15 @@ const openai = new OpenAI({
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, assistantId }: { messages: ChatMessage[]; assistantId: string } = await request.json();
+    const { 
+      messages, 
+      assistantId, 
+      modelSettings 
+    }: { 
+      messages: ChatMessage[]; 
+      assistantId: string; 
+      modelSettings?: ModelSettings | null;
+    } = await request.json();
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json(
@@ -40,19 +50,38 @@ export async function POST(request: NextRequest) {
     // Get the system prompt for the selected assistant
     const systemPrompt = assistant.system_prompt;
 
+    // Get model settings (use provided settings or fetch from database)
+    let settings = modelSettings;
+    if (!settings) {
+      try {
+        settings = await getModelSettings();
+      } catch (error) {
+        console.error('Failed to get model settings, using defaults:', error);
+        settings = {
+          id: 'default',
+          model: 'gpt-4.1-nano' as const,
+          temperature: 0.20,
+          max_tokens: 2048,
+          top_p: 1.00,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+      }
+    }
+
     // Prepare messages with system prompt
     const chatMessages = [
       { role: 'system' as const, content: systemPrompt },
       ...messages
     ];
 
-    // Call OpenAI API
+    // Call OpenAI API with dynamic settings
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4.1-nano',
+      model: settings.model,
       messages: chatMessages,
-      max_tokens: 2048,
-      temperature: 0.20,
-      top_p: 1.00,
+      max_tokens: settings.max_tokens,
+      temperature: settings.temperature,
+      top_p: settings.top_p,
     });
 
     const reply = completion.choices[0].message.content;

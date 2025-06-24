@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChatMessage, Assistant } from '@/types';
+import { ModelSettings } from '@/lib/supabase/types';
 
 interface ChatWidgetProps {
   className?: string;
+  modelSettings?: ModelSettings | null;
 }
 
-export default function ChatWidget({ className = '' }: ChatWidgetProps) {
+export default function ChatWidget({ className = '', modelSettings }: ChatWidgetProps) {
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [selectedAssistant, setSelectedAssistant] = useState<string>('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -84,7 +86,8 @@ export default function ChatWidget({ className = '' }: ChatWidgetProps) {
         },
         body: JSON.stringify({
           messages: newMessages,
-          assistantId: selectedAssistant
+          assistantId: selectedAssistant,
+          modelSettings: modelSettings
         })
       });
 

@@ -1,3 +1,5 @@
+import { ModelType } from '@/types/model-settings';
+
 export type Json =
   | string
   | number
@@ -39,6 +41,36 @@ export interface Database {
         }
         Relationships: []
       }
+      model_settings: {
+        Row: {
+          id: string
+          model: ModelType
+          temperature: number
+          max_tokens: number
+          top_p: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          model?: ModelType
+          temperature?: number
+          max_tokens?: number
+          top_p?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          model?: ModelType
+          temperature?: number
+          max_tokens?: number
+          top_p?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -59,3 +91,7 @@ export interface Database {
 export type Assistant = Database['public']['Tables']['assistants']['Row']
 export type InsertAssistant = Database['public']['Tables']['assistants']['Insert']
 export type UpdateAssistant = Database['public']['Tables']['assistants']['Update']
+
+export type ModelSettings = Database['public']['Tables']['model_settings']['Row']
+export type InsertModelSettings = Database['public']['Tables']['model_settings']['Insert']
+export type UpdateModelSettings = Database['public']['Tables']['model_settings']['Update']

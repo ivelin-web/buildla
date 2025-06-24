@@ -1,8 +1,17 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import ChatWidget from '@/components/chat/ChatWidget';
 import CopyCodeButton from '@/components/CopyCodeButton';
+import PreviewClientWrapper from '@/components/PreviewClientWrapper';
+import { getModelSettings } from '@/lib/actions/model-settings';
 
-export default function ChatPreviewPage() {
+export default async function ChatPreviewPage() {
+  // Fetch initial settings on the server
+  let initialSettings = null;
+  try {
+    initialSettings = await getModelSettings();
+  } catch (error) {
+    console.error('Failed to load initial model settings:', error);
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -10,20 +19,14 @@ export default function ChatPreviewPage() {
           <div>
             <CardTitle>Chat Preview</CardTitle>
             <CardDescription>
-              Test your AI assistants and see how they interact with customers
+              Test your AI assistants with different model settings
             </CardDescription>
           </div>
           <CopyCodeButton />
         </div>
       </CardHeader>
       <CardContent>
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <p className="text-blue-800 text-sm">
-            This is a live preview of how your chat widget will appear to customers. 
-            You can test all functionality here before embedding it on your website.
-          </p>
-        </div>
-        <ChatWidget />
+        <PreviewClientWrapper initialSettings={initialSettings} />
       </CardContent>
     </Card>
   );

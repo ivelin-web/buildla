@@ -28,4 +28,4 @@
 ## 5 · Optional Enhancements
 - [x] **One-click HTML code-generation button** for Squarespace (copies chat-interface code to clipboard).  
 - [x] **Admin dashboard** to manage assistants, view generated offers, and live-preview the chat UI.  
-- [ ] **Model settings control** (temperature, max tokens, model selection) similar to the OpenAI interface.
+- [x] **Model settings control** (temperature, max tokens, model selection) similar to the OpenAI interface.

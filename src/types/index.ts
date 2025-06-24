@@ -6,16 +6,6 @@ export interface ChatMessage {
 // Re-export Supabase types for consistency
 export type { Assistant, InsertAssistant, UpdateAssistant } from '@/lib/supabase/types';
 
-// Keep Task interface for backward compatibility, mapping to Assistant
-export interface Task {
-  id: string;
-  name: string;
-  description: string;
-  systemPrompt: string;
-  createdAt: string;
-  updatedAt?: string;
-}
-
 export interface CustomerInfo {
   name: string;
   email: string;

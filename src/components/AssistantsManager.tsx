@@ -143,7 +143,7 @@ export default function AssistantsManager({ assistants }: AssistantsManagerProps
                     <AlertDialogHeader>
                       <AlertDialogTitle>Delete Assistant</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Are you sure you want to delete "{assistant.name}"? This action cannot be undone and will permanently remove the assistant and all its configuration.
+                        Are you sure you want to delete &quot;{assistant.name}&quot;? This action cannot be undone and will permanently remove the assistant and all its configuration.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
