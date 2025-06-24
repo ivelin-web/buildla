@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
 import { getAssistantById } from '@/lib/actions/assistants';
 import { getModelSettings } from '@/lib/actions/model-settings';
-import { ChatMessage, ChatResponse } from '@/types';
-import { ModelSettings } from '@/lib/supabase/types';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,10 +13,6 @@ export async function POST(request: NextRequest) {
       messages, 
       assistantId, 
       modelSettings 
-    }: { 
-      messages: ChatMessage[]; 
-      assistantId: string; 
-      modelSettings?: ModelSettings | null;
     } = await request.json();
 
     if (!messages || !Array.isArray(messages)) {
@@ -69,39 +62,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Prepare messages with system prompt
-    const chatMessages = [
-      { role: 'system' as const, content: systemPrompt },
-      ...messages
-    ];
-
-    // Call OpenAI API with dynamic settings
-    const completion = await openai.chat.completions.create({
-      model: settings.model,
-      messages: chatMessages,
-      max_tokens: settings.max_tokens,
+    // Use streamText from AI SDK
+    const result = streamText({
+      model: openai(settings.model),
+      system: systemPrompt,
+      messages,
+      maxTokens: settings.max_tokens,
       temperature: settings.temperature,
-      top_p: settings.top_p,
+      topP: settings.top_p,
     });
 
-    const reply = completion.choices[0].message.content;
-
-    if (!reply) {
-      return NextResponse.json(
-        { error: 'No response from OpenAI' },
-        { status: 500 }
-      );
-    }
-
-    const response: ChatResponse = {
-      reply,
-      taskName: assistant.name
-    };
-
-    return NextResponse.json(response);
+    return result.toDataStreamResponse();
 
   } catch (error) {
-    console.error('OpenAI API Error:', error);
+    console.error('AI API Error:', error);
     
     if (error instanceof Error && 'status' in error && error.status === 401) {
       return NextResponse.json(
@@ -112,7 +86,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json(
       { 
-        error: 'Failed to get response from OpenAI',
+        error: 'Failed to get response from AI',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
