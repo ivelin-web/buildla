@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
             return { 
               success: true, 
               offerId: result.offerId,
-              message: 'Offer has been successfully saved to the database. You can now proceed to show the completion message to the user.'
+              message: 'Perfect! Your bathroom renovation quote has been prepared and saved. Thank you for choosing Buildla! Your detailed quote will be processed and you can expect to hear from us soon.'
             };
           } else {
             console.error('Failed to save offer:', result.error);
@@ -132,6 +132,10 @@ export async function POST(request: NextRequest) {
       tools: {
         saveOffer: saveOfferTool,
       },
+      maxSteps: 3, // Enable multi-step generation to allow text response after tool execution
+      onError: (error) => {
+        console.error('streamText error:', error);
+      }
     });
 
     return result.toDataStreamResponse();

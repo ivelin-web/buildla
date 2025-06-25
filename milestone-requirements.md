@@ -11,21 +11,25 @@
   > *If it becomes too complex for the AI to process, keep PDF only.*
 
 ## 3 · UI Improvements
-- [ ] Dynamic widget sizing.  
-- [ ] Remove blue/purple banner.  
-- [ ] Change “AI is thinking” to Swedish text.  
-- [ ] Remove “Are you ready?” step → start directly in the main conversation.  
-- [ ] Add **“Restart”** button after contact details are collected.
+- [x] Dynamic widget sizing.  
+- [x] Remove blue/purple banner.  
+- [ ] Change "AI is thinking" to Swedish text.  
+- [x] Remove "Are you ready?" step → start directly in the main conversation.  
+- [ ] Add **"Restart"** button after contact details are collected.
 
 ## 4 · Real-Time Typing Effect
-- [ ] Integrate **Vercel AI SDK** for streaming responses, providing:  
+- [x] Integrate **Vercel AI SDK** for streaming responses, providing:  
   - Smooth word-by-word output  
   - Immediate progress visibility  
   - Automatic retries on connection issues  
   - Mobile/slow-network optimization  
   - Professional chat UX
 
-## 5 · Optional Enhancements
+## 5 · Offer Management System
+- [x] **Save AI-generated offers** to Supabase database instead of hardcoded data.
+- [x] **Display real offers** in the admin dashboard from the database.
+
+## 6 · Optional Enhancements
 - [x] **One-click HTML code-generation button** for Squarespace (copies chat-interface code to clipboard).  
 - [x] **Admin dashboard** to manage assistants, view generated offers, and live-preview the chat UI.  
 - [x] **Model settings control** (temperature, max tokens, model selection) similar to the OpenAI interface.
