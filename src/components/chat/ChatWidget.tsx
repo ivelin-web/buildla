@@ -20,7 +20,7 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
   const [isSessionComplete, setIsSessionComplete] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages, append } = useChat({
     api: '/api/chat',
     body: {
       assistantId: selectedAssistant,
@@ -47,18 +47,20 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const resetChat = () => {
+  const resetChat = async () => {
     setMessages([]);
     setIsSessionComplete(false);
     
-    // Auto-send first message if assistant has one
-    const currentAssistant = assistants.find(a => a.id === selectedAssistant);
-    if (currentAssistant?.first_message) {
-      setMessages([{
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: currentAssistant.first_message
-      }]);
+    // Auto-start conversation using append
+    if (selectedAssistant) {
+      try {
+        await append({
+          role: 'user',
+          content: 'Hi'
+        });
+      } catch (error) {
+        console.error('Error restarting conversation:', error);
+      }
     }
   };
 
@@ -82,19 +84,19 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
     }
   };
 
-  const handleAssistantChange = (assistantId: string) => {
+  const handleAssistantChange = async (assistantId: string) => {
     setSelectedAssistant(assistantId);
     setIsSessionComplete(false);
     setMessages([]); // Clear previous messages
     
-    // Auto-send first message if assistant has one
-    const assistant = assistants.find(a => a.id === assistantId);
-    if (assistant?.first_message) {
-      setMessages([{
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: assistant.first_message
-      }]);
+    // Auto-start conversation using append - this automatically triggers AI response
+    try {
+      await append({
+        role: 'user',
+        content: 'Hi'
+      });
+    } catch (error) {
+      console.error('Error starting conversation:', error);
     }
   };
 
