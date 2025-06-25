@@ -195,6 +195,17 @@ export default function AssistantsManager({ assistants }: AssistantsManagerProps
                   <Input name="category" placeholder="e.g., Renovation, Construction, Consultation" />
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="firstMessage">First Message (Optional)</Label>
+                  <Textarea 
+                    name="firstMessage" 
+                    rows={3} 
+                    placeholder="Greeting message automatically sent when assistant is selected (e.g., 'Hello! I'm here to help with...')"
+                  />
+                  <p className="text-xs text-gray-500">
+                    This message will be automatically sent when users select this assistant, eliminating the need for them to start the conversation.
+                  </p>
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="systemPrompt">System Prompt</Label>
                   <Textarea 
                     name="systemPrompt" 
@@ -243,6 +254,18 @@ export default function AssistantsManager({ assistants }: AssistantsManagerProps
                   <div className="space-y-2">
                     <Label htmlFor="category">Category</Label>
                     <Input name="category" defaultValue={editingAssistant.category || ''} placeholder="e.g., Renovation, Construction, Consultation" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="firstMessage">First Message (Optional)</Label>
+                    <Textarea 
+                      name="firstMessage" 
+                      rows={3} 
+                      defaultValue={editingAssistant.first_message || ''}
+                      placeholder="Greeting message automatically sent when assistant is selected (e.g., 'Hello! I'm here to help with...')"
+                    />
+                    <p className="text-xs text-gray-500">
+                      This message will be automatically sent when users select this assistant, eliminating the need for them to start the conversation.
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="systemPrompt">System Prompt</Label>

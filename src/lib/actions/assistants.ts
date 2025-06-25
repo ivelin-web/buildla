@@ -27,6 +27,7 @@ export async function createAssistant(formData: FormData) {
   const description = formData.get('description') as string
   const systemPrompt = formData.get('systemPrompt') as string
   const category = formData.get('category') as string
+  const firstMessage = formData.get('firstMessage') as string
 
   if (!name || !description || !systemPrompt) {
     throw new Error('Name, description, and system prompt are required')
@@ -37,6 +38,7 @@ export async function createAssistant(formData: FormData) {
     description,
     system_prompt: systemPrompt,
     category: category || null,
+    first_message: firstMessage || null,
   }
 
   const { error } = await supabase
@@ -58,6 +60,7 @@ export async function updateAssistant(id: string, formData: FormData) {
   const description = formData.get('description') as string
   const systemPrompt = formData.get('systemPrompt') as string
   const category = formData.get('category') as string
+  const firstMessage = formData.get('firstMessage') as string
 
   if (!name || !description || !systemPrompt) {
     throw new Error('Name, description, and system prompt are required')
@@ -68,6 +71,7 @@ export async function updateAssistant(id: string, formData: FormData) {
     description,
     system_prompt: systemPrompt,
     category: category || null,
+    first_message: firstMessage || null,
     updated_at: new Date().toISOString(),
   }
 

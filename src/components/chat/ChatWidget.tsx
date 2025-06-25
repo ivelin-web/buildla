@@ -17,13 +17,26 @@ interface ChatWidgetProps {
 export default function ChatWidget({ className = '', modelSettings, isEmbed = false }: ChatWidgetProps) {
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [selectedAssistant, setSelectedAssistant] = useState<string>('');
+  const [isSessionComplete, setIsSessionComplete] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages } = useChat({
     api: '/api/chat',
     body: {
       assistantId: selectedAssistant,
       modelSettings: modelSettings
+    },
+    onFinish: (message) => {
+      // Simple fallback: check if message contains our specific completion pattern
+      // This is more reliable than trying to access deprecated toolInvocations
+      const completionPatterns = [
+        'Perfect! Your bathroom renovation quote has been prepared and saved',
+        'Perfekt! Din badrumsrenoveringsoffert har förberetts och sparats'
+      ];
+      
+      if (message.content && completionPatterns.some(pattern => message.content.includes(pattern))) {
+        setIsSessionComplete(true);
+      }
     },
     onError: (error) => {
       console.error('Chat error:', error);
@@ -32,6 +45,21 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const resetChat = () => {
+    setMessages([]);
+    setIsSessionComplete(false);
+    
+    // Auto-send first message if assistant has one
+    const currentAssistant = assistants.find(a => a.id === selectedAssistant);
+    if (currentAssistant?.first_message) {
+      setMessages([{
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: currentAssistant.first_message
+      }]);
+    }
   };
 
   useEffect(() => {
@@ -56,6 +84,18 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
 
   const handleAssistantChange = (assistantId: string) => {
     setSelectedAssistant(assistantId);
+    setIsSessionComplete(false);
+    setMessages([]); // Clear previous messages
+    
+    // Auto-send first message if assistant has one
+    const assistant = assistants.find(a => a.id === assistantId);
+    if (assistant?.first_message) {
+      setMessages([{
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: assistant.first_message
+      }]);
+    }
   };
 
   return (
@@ -138,31 +178,47 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
       )}
 
       {/* Input */}
-      <form onSubmit={handleSubmit} className="flex gap-3 p-5 bg-white border-t border-gray-200">
-        <Input
-          type="text"
-          value={input}
-          onChange={handleInputChange}
-          placeholder={
-            selectedAssistant
-              ? 'Type your message...'
-              : 'Select an assistant first...'
-          }
-          disabled={!selectedAssistant || isLoading}
-          className="flex-1 rounded-full"
-        />
-        <Button
-          type="submit"
-          disabled={!selectedAssistant || !input.trim() || isLoading}
-          className={`px-6 rounded-full bg-blue-500 hover:bg-blue-600 ${
-            !selectedAssistant || !input.trim() || isLoading 
-              ? 'cursor-not-allowed' 
-              : 'cursor-pointer'
-          }`}
-        >
-          Send
-        </Button>
-      </form>
+      <div className="p-5 bg-white border-t border-gray-200">
+        {isSessionComplete ? (
+          <div className="flex flex-col gap-3">
+            <div className="text-center text-sm text-gray-600">
+              Session completed! You can start a new conversation.
+            </div>
+            <Button
+              onClick={resetChat}
+              className="w-full rounded-full bg-green-500 hover:bg-green-600 text-white"
+            >
+              Start New Conversation
+            </Button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="flex gap-3">
+            <Input
+              type="text"
+              value={input}
+              onChange={handleInputChange}
+              placeholder={
+                selectedAssistant
+                  ? 'Type your message...'
+                  : 'Select an assistant first...'
+              }
+              disabled={!selectedAssistant || isLoading}
+              className="flex-1 rounded-full"
+            />
+            <Button
+              type="submit"
+              disabled={!selectedAssistant || !input.trim() || isLoading}
+              className={`px-6 rounded-full bg-blue-500 hover:bg-blue-600 ${
+                !selectedAssistant || !input.trim() || isLoading 
+                  ? 'cursor-not-allowed' 
+                  : 'cursor-pointer'
+              }`}
+            >
+              Send
+            </Button>
+          </form>
+        )}
+      </div>
     </div>
   );
 } 
