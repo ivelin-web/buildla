@@ -71,6 +71,47 @@ export interface Database {
         }
         Relationships: []
       }
+      offers: {
+        Row: {
+          id: string
+          assistant_id: string | null
+          customer_info: Json
+          offer_details: Json
+          chat_messages: Json | null
+          status: string | null
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          assistant_id?: string | null
+          customer_info: Json
+          offer_details: Json
+          chat_messages?: Json | null
+          status?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          assistant_id?: string | null
+          customer_info?: Json
+          offer_details?: Json
+          chat_messages?: Json | null
+          status?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_assistant_id_fkey"
+            columns: ["assistant_id"]
+            isOneToOne: false
+            referencedRelation: "assistants"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -95,3 +136,7 @@ export type UpdateAssistant = Database['public']['Tables']['assistants']['Update
 export type ModelSettings = Database['public']['Tables']['model_settings']['Row']
 export type InsertModelSettings = Database['public']['Tables']['model_settings']['Insert']
 export type UpdateModelSettings = Database['public']['Tables']['model_settings']['Update']
+
+export type Offer = Database['public']['Tables']['offers']['Row']
+export type InsertOffer = Database['public']['Tables']['offers']['Insert']
+export type UpdateOffer = Database['public']['Tables']['offers']['Update']

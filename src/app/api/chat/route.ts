@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { streamText, tool } from 'ai';
+import { z } from 'zod';
 import { getAssistantById } from '@/lib/actions/assistants';
 import { getModelSettings } from '@/lib/actions/model-settings';
+import { createOffer } from '@/lib/actions/offers';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -62,7 +64,64 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Use streamText from AI SDK
+    // Define the offer tool
+    const saveOfferTool = tool({
+      description: 'Save bathroom renovation offer to database. ONLY call this AFTER you have already shown the complete price breakdown to the user AND collected their contact details.',
+      parameters: z.object({
+        customerInfo: z.object({
+          name: z.string().min(1),
+          email: z.string().min(1),
+          phone: z.string().min(1),
+        }),
+        offerDetails: z.object({
+          area: z.number(),
+          form: z.string(),
+          builtBefore1950: z.boolean(),
+          tileType: z.string(),
+          builtInDetails: z.number(),
+          parkingZone: z.number().nullable(),
+          rotPersons: z.number(),
+          laborCost: z.number(),
+          materialCost: z.number(),
+          transportCost: z.number(),
+          parkingCost: z.number(),
+          rotDeduction: z.number(),
+          totalIncVat: z.number(),
+        }),
+      }),
+      execute: async ({ customerInfo, offerDetails }) => {
+        try {
+          const result = await createOffer({
+            assistantId,
+            customerInfo,
+            offerDetails,
+            chatMessages: messages
+          });
+          
+          if (result.success) {
+            return { 
+              success: true, 
+              offerId: result.offerId,
+              message: 'Offer has been successfully saved to the database. You can now proceed to show the completion message to the user.'
+            };
+          } else {
+            console.error('Failed to save offer:', result.error);
+            return { 
+              success: false, 
+              error: result.error || 'Failed to save offer'
+            };
+          }
+        } catch (error) {
+          console.error('Error in saveOffer tool:', error);
+          return { 
+            success: false, 
+            error: 'Internal error while saving offer'
+          };
+        }
+      },
+    });
+
+    // Use streamText from AI SDK with tools
     const result = streamText({
       model: openai(settings.model),
       system: systemPrompt,
@@ -70,6 +129,9 @@ export async function POST(request: NextRequest) {
       maxTokens: settings.max_tokens,
       temperature: settings.temperature,
       topP: settings.top_p,
+      tools: {
+        saveOffer: saveOfferTool,
+      },
     });
 
     return result.toDataStreamResponse();
