@@ -27,15 +27,32 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
       modelSettings: modelSettings
     },
     onFinish: (message) => {
-      // Simple fallback: check if message contains our specific completion pattern
-      // This is more reliable than trying to access deprecated toolInvocations
-      const completionPatterns = [
-        'Perfect! Your bathroom renovation quote has been prepared and saved',
-        'Perfekt! Din badrumsrenoveringsoffert har förberetts och sparats'
-      ];
-      
-      if (message.content && completionPatterns.some(pattern => message.content.includes(pattern))) {
-        setIsSessionComplete(true);
+      // Check for successful saveOffer tool execution via message.parts
+      if (message.parts) {
+        const toolResults = message.parts.filter(
+          (part) =>
+            part.type === 'tool-invocation' &&
+            'toolInvocation' in part &&
+            part.toolInvocation?.state === 'result' &&
+            part.toolInvocation?.toolName === 'saveOffer'
+        );
+
+        for (const part of toolResults) {
+          try {
+            if ('toolInvocation' in part && part.toolInvocation?.state === 'result') {
+              const result = part.toolInvocation.result;
+              const data = typeof result === 'string' ? JSON.parse(result) : result;
+              
+              if (data && typeof data === 'object' && 'success' in data && data.success) {
+                setIsSessionComplete(true);
+                break;
+              }
+            }
+          } catch (error) {
+            // Ignore JSON parsing errors
+            console.error('Failed to parse tool result:', error);
+          }
+        }
       }
     },
     onError: (error) => {
@@ -141,24 +158,31 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
           </div>
         ) : (
           <>
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`mb-4 flex ${
-                  message.role === 'user' ? 'justify-end' : 'justify-start'
-                }`}
-              >
+            {messages.map((message) => {
+              // Hide empty assistant messages to prevent empty balloons during tool execution
+              if (message.role === 'assistant' && !message.content.trim()) {
+                return null;
+              }
+              
+              return (
                 <div
-                  className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
-                    message.role === 'user'
-                      ? 'bg-blue-500 text-white rounded-br-md'
-                      : 'bg-white text-gray-800 border border-gray-200 rounded-bl-md'
+                  key={message.id}
+                  className={`mb-4 flex ${
+                    message.role === 'user' ? 'justify-end' : 'justify-start'
                   }`}
                 >
-                  {message.content}
+                  <div
+                    className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                      message.role === 'user'
+                        ? 'bg-blue-500 text-white rounded-br-md'
+                        : 'bg-white text-gray-800 border border-gray-200 rounded-bl-md'
+                    }`}
+                  >
+                    {message.content}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             <div ref={messagesEndRef} />
           </>
         )}
