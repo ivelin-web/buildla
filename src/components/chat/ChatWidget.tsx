@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SkeletonMessage } from '@/components/ui/skeleton-message';
 import { Assistant } from '@/types';
 import { ModelSettings } from '@/lib/supabase/types';
 
@@ -117,6 +118,14 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
     }
   };
 
+  // Memoized skeleton visibility logic for better performance
+  const shouldShowSkeleton = useMemo(() => {
+    if (!isLoading) return false;
+    const lastMessage = messages[messages.length - 1];
+    const isStreamingAssistantMessage = lastMessage?.role === 'assistant' && lastMessage.content.trim();
+    return !isStreamingAssistantMessage;
+  }, [isLoading, messages]);
+
   return (
     <div className={`max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden ${className}`}>
       {/* Header */}
@@ -183,18 +192,16 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
                 </div>
               );
             })}
+            
+            {/* Show skeleton message when loading and waiting for response to start */}
+            {shouldShowSkeleton && (
+              <SkeletonMessage />
+            )}
+            
             <div ref={messagesEndRef} />
           </>
         )}
       </div>
-
-      {/* Loading Indicator */}
-      {isLoading && (
-        <div className="flex items-center gap-2 px-5 py-2 text-gray-600 text-sm">
-          <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
-          <span>AI is thinking...</span>
-        </div>
-      )}
 
       {/* Error Message */}
       {error && (

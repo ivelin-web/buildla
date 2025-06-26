@@ -119,4 +119,22 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Custom keyframes for typing dots animation */
+  @keyframes smooth-bounce {
+    0%, 100% { 
+      transform: translateY(0);
+    }
+    50% { 
+      transform: translateY(-6px);
+    }
+  }
+}
+
+@layer components {
+  /* Typing dots animation utility */
+  .typing-dot {
+    will-change: transform;
+    animation: smooth-bounce 1s ease-in-out infinite;
+  }
 }

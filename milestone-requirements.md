@@ -15,7 +15,7 @@
 - [x] Remove blue/purple banner.  
 - [ ] Change "AI is thinking" to Swedish text.  
 - [x] Remove "Are you ready?" step → start directly in the main conversation.  
-- [ ] Add **"Restart"** button after contact details are collected.
+- [x] Add **"Restart"** button after contact details are collected.
 
 ## 4 · Real-Time Typing Effect
 - [x] Integrate **Vercel AI SDK** for streaming responses, providing:  
