@@ -5,7 +5,7 @@
 - [x] Create a **database connection** to store offers and customer data.
 
 ## 2 · File Upload
-- [ ] Implement **PDF upload** (priority 1).  
+- [x] Implement **PDF upload** (priority 1).  
 - [ ] Implement **image upload** (priority 2).  
 - [ ] Enable **multiple-file uploads** (priority 3).  
   > *If it becomes too complex for the AI to process, keep PDF only.*
