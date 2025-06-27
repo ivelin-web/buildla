@@ -14,24 +14,29 @@ export interface CustomerInfo {
 
 export interface OfferDetails {
   area: number;
+  form: string;
+  builtBefore1950: boolean;
+  tileType: string;
+  builtInDetails: number;
+  parkingZone: number | null;
+  rotPersons: number;
   laborCost: number;
   materialCost: number;
   transportCost: number;
   parkingCost: number;
   rotDeduction: number;
   totalIncVat: number;
-  features: string[];
 }
 
 export interface Offer {
   id: string;
-  taskId: string;
-  taskName: string;
-  customerInfo: CustomerInfo;
-  offerDetails: OfferDetails;
-  chatHistory: ChatMessage[];
-  createdAt: string;
-  status: 'completed' | 'pending';
+  assistant_id: string | null;
+  customer_info: CustomerInfo;
+  offer_details: OfferDetails;
+  chat_messages?: ChatMessage[] | null;
+  status: 'pending' | 'completed' | null;
+  created_at: string;
+  updated_at: string | null;
 }
 
 export interface ChatResponse {

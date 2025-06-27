@@ -1,16 +1,16 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { getAssistants } from '@/lib/actions/assistants';
-import { getOffersData } from '@/lib/offers';
+import { getOffers } from '@/lib/actions/offers';
 
 export default async function DashboardOverview() {
   const assistants = await getAssistants();
-  const offers = getOffersData();
+  const offers = await getOffers();
 
   const stats = {
     totalAssistants: assistants.length,
     totalOffers: offers.length,
     completedOffers: offers.filter(o => o.status === 'completed').length,
-    totalRevenue: offers.reduce((sum, offer) => sum + offer.offerDetails.totalIncVat, 0)
+    totalRevenue: offers.reduce((sum, offer) => sum + offer.offer_details.totalIncVat, 0)
   };
 
   return (
