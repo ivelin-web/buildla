@@ -2,6 +2,8 @@
 
 import { Button } from '@/components/ui/button';
 import DashboardNav from '@/components/DashboardNav';
+import { signOut } from '@/lib/auth';
+import { toast } from 'sonner';
 
 export default function DashboardLayout({
   children,
@@ -18,13 +20,15 @@ export default function DashboardLayout({
               <h1 className="text-3xl font-bold text-gray-900">Buildla Dashboard</h1>
               <p className="text-gray-600 mt-1">Manage your AI assistants and monitor performance</p>
             </div>
-            <Button 
-              variant="outline" 
-              className="text-red-600 border-red-200 hover:bg-red-50 cursor-pointer"
-              onClick={() => window.location.href = '/auth'}
-            >
-              Logout
-            </Button>
+            <form action={() => { toast.success('Signed out successfully'); signOut(); }}>
+              <Button 
+                type="submit"
+                variant="outline" 
+                className="text-red-600 border-red-200 hover:bg-red-50 cursor-pointer"
+              >
+                Logout
+              </Button>
+            </form>
           </div>
         </div>
       </div>
