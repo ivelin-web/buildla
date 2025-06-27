@@ -13,7 +13,7 @@
 ## 3 · UI Improvements
 - [x] Dynamic widget sizing.  
 - [x] Remove blue/purple banner.  
-- [ ] Change "AI is thinking" to Swedish text.  
+- [x] Add skeleton dots loading animation while waiting for the output straming. 
 - [x] Remove "Are you ready?" step → start directly in the main conversation.  
 - [x] Add **"Restart"** button after contact details are collected.
 
