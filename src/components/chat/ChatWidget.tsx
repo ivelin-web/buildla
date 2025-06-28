@@ -119,7 +119,7 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
       try {
         await append({
           role: 'user',
-          content: 'Hi'
+          content: 'Hej'
         });
       } catch (error) {
         console.error('Error restarting conversation:', error);
@@ -156,7 +156,7 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
     try {
       await append({
         role: 'user',
-        content: 'Hi'
+        content: 'Hej'
       });
     } catch (error) {
       console.error('Error starting conversation:', error);
@@ -212,9 +212,14 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
           </div>
         ) : (
           <>
-            {messages.map((message) => {
+            {messages.map((message, index) => {
               // Hide empty assistant messages to prevent empty balloons during tool execution
               if (message.role === 'assistant' && !message.content.trim()) {
+                return null;
+              }
+              
+              // Hide the first user message (automatic greeting)
+              if (message.role === 'user' && index === 0) {
                 return null;
               }
               

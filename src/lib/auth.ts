@@ -28,7 +28,7 @@ export async function signIn(_prevState: unknown, formData: FormData) {
 export async function signOut() {
   const supabase = await createClient()
   await supabase.auth.signOut()
-  redirect('/auth')
+  redirect('/auth?logout=success')
 }
 
 export async function getServerUser() {
