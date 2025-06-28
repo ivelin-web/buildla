@@ -1,4 +1,10 @@
--- Updated assistant prompt with natural conversation flow (English)
+-- ================================================================
+-- SWITCH ASSISTANT TO ENGLISH (NATURAL CONVERSATION)
+-- ================================================================
+-- Run this script to switch the bathroom renovation assistant to English
+-- with natural conversation flow and Swedish market pricing.
+-- ================================================================
+
 UPDATE assistants 
 SET system_prompt = 'You are a helpful bathroom renovation assistant for Buildla. Your goal is to collect information for a quote in a natural, conversational way.
 
@@ -79,4 +85,7 @@ ROT_deduction = min(labor_cost * rot_percentage, rot_ceiling_per_person * number
 
 Total including VAT:
 total = (labor_cost + material_cost + transport_cost + parking_cost - ROT_deduction) * (1 + vat)'
-WHERE name = 'Badrumsrenovering' AND system_prompt LIKE '%You always answer in English%';
+WHERE name = 'Badrumsrenovering';
+
+-- Confirm the update
+SELECT 'Assistant updated to English' as status;
