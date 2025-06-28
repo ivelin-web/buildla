@@ -3,9 +3,9 @@
 ## Simple Plan: Scrape → Embed → Store → Search → Answer
 
 ### 1 · Database Setup
-- [ ] Enable **pgvector extension** in Supabase
-- [ ] Create **faq_embeddings** table with vector column
-- [ ] Add HNSW similarity search index
+- [x] Enable **pgvector extension** in Supabase
+- [x] Create **faq_embeddings** table with vector column
+- [x] Add HNSW similarity search index
 
 ### 2 · Scraper + Embeddings Script
 - [ ] Install **Playwright** and **Cheerio**
