@@ -34,12 +34,13 @@ A Next.js platform that enables businesses to create intelligent AI assistants f
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
    NEXT_PUBLIC_APP_URL=http://localhost:3000
+   NEXT_PUBLIC_MAX_FILE_SIZE_MB=10
    ```
 
 3. **Database Setup:**
    ```bash
-   # Run the migration to set up Supabase tables
-   # Execute the SQL in supabase-migration.sql in your Supabase dashboard
+   # Run the complete setup script in your Supabase SQL Editor
+   # Execute: supabase-migrations/supabase-complete-setup.sql
    ```
 
 4. **Start development server:**
@@ -50,8 +51,9 @@ A Next.js platform that enables businesses to create intelligent AI assistants f
 ## Application Routes
 
 ### Public Routes
-- `/` - Landing page showcasing the platform
-- `/auth` - Authentication page
+- `/` - Redirects to dashboard (no landing page)
+- `/auth` - Admin authentication page
+- `/widget` - Embeddable chat widget for external websites
 
 ### Dashboard Routes (Protected)
 - `/dashboard` - Overview with statistics (assistants, offers, revenue)
@@ -64,23 +66,55 @@ A Next.js platform that enables businesses to create intelligent AI assistants f
 - `POST /api/chat` - Chat interactions with OpenAI integration
 - `GET /api/assistants` - Fetch available assistants from database
 
-## Demo Credentials
+## Authentication
 
-For testing the dashboard:
+The application uses Supabase Authentication with admin-only access:
+
+### Demo Credentials
 - Email: `admin@buildla.com`
 - Password: `admin123`
 
+### Features
+- Server-side authentication with Supabase Auth
+- Protected dashboard routes
+- Automatic session management
+- Secure logout functionality
+
 ## Database Schema
 
-The application uses Supabase with the following main table:
+The application uses Supabase with three main tables:
 
 ```sql
+-- AI Assistant configurations
 assistants (
   id uuid PRIMARY KEY,
   name text NOT NULL,
   description text NOT NULL,
   system_prompt text NOT NULL,
   category text,
+  created_at timestamp,
+  updated_at timestamp
+)
+
+-- OpenAI model settings
+model_settings (
+  id uuid PRIMARY KEY,
+  model varchar(50) NOT NULL,
+  temperature decimal(3,2) NOT NULL,
+  max_tokens integer NOT NULL,
+  top_p decimal(3,2) NOT NULL,
+  created_at timestamp,
+  updated_at timestamp
+)
+
+-- Customer offers and quotes
+offers (
+  id uuid PRIMARY KEY,
+  assistant_id uuid REFERENCES assistants(id),
+  customer_info jsonb NOT NULL,
+  offer_details jsonb NOT NULL,
+  chat_messages jsonb,
+  status text DEFAULT 'pending',
   created_at timestamp,
   updated_at timestamp
 )
