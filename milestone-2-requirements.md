@@ -7,13 +7,15 @@
 - [x] Create **faq_embeddings** table with vector column
 - [x] Add HNSW similarity search index
 
-### 2 · Scraper + Embeddings Script
-- [ ] Install **Playwright** and **Cheerio**
-- [ ] Create single script to scrape all pages from sitemap
-- [ ] Extract clean text content from each page
-- [ ] Smart chunking (800-1000 tokens) with overlap for context preservation
-- [ ] Generate embeddings using **text-embedding-3-small**
-- [ ] Store embeddings directly in Supabase table with rate limiting
+### 2 · Scraper + Embeddings Script (Website - https://www.traguiden.se/)
+- [x] Install **Playwright** and **Cheerio**
+- [x] Create single script to scrape all pages from sitemap (2760+ URLs)
+- [x] Extract clean text content from each page with accordion handling
+- [x] Smart chunking (900 tokens) with 150-token overlap for context preservation
+- [x] Generate embeddings using **text-embedding-3-small**
+- [x] Store embeddings directly in Supabase table with rate limiting
+- [x] Multi-website configuration system for future expansion
+- [x] Production safety features (--dry-run, config validation)
 
 ### 3 · FAQ Search Tool
 - [ ] Create semantic search function in `src/lib/faq-search.ts`
@@ -54,14 +56,38 @@ CREATE INDEX ON faq_embeddings USING hnsw (embedding vector_cosine_ops);
 ```
 
 ## Files to Create/Modify
-- `scripts/faq-scraper.js` - Scrape website + generate embeddings + store in DB
-- `src/lib/faq-search.ts` - Semantic search function
-- Update `src/app/api/chat/route.ts` - Add searchFAQ tool
-- Add FAQ assistant to database
+- [x] `scripts/faq-scraper.js` - Scrape website + generate embeddings + store in DB
+- [x] `scripts/website-configs.json` - Multi-website configuration system  
+- [x] `supabase-migrations/faq-embeddings-setup.sql` - Complete database schema
+- [ ] `src/lib/faq-search.ts` - Semantic search function
+- [ ] Update `src/app/api/chat/route.ts` - Add searchFAQ tool
+- [ ] Add FAQ assistant to database
 
 ## Dependencies
 ```bash
-pnpm add playwright cheerio
+pnpm add playwright cheerio  # ✅ COMPLETED
+```
+
+## Task 2 Status: ✅ COMPLETED
+
+**Scraper successfully working:**
+- ✅ Extracts 2760+ URLs from traguiden.se sitemap
+- ✅ Processes pages with accordion content expansion
+- ✅ Generates embeddings and stores in Supabase
+- ✅ Multi-website ready with clean configuration system
+- ✅ Production features: --dry-run, --test, --limit flags
+- ✅ Clean, maintainable code ready for production
+
+**Usage:**
+```bash
+# Test run
+node scripts/faq-scraper.js --site=traguiden.se --test
+
+# Production run
+node scripts/faq-scraper.js --site=traguiden.se --limit=100
+
+# Dry run (safe testing)
+node scripts/faq-scraper.js --site=traguiden.se --dry-run
 ```
 
 ---
