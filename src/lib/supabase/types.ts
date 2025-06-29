@@ -112,12 +112,55 @@ export interface Database {
           }
         ]
       }
+      faq_embeddings: {
+        Row: {
+          id: string
+          content: string
+          embedding: number[] | null
+          url: string
+          title: string | null
+          source_website: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          content: string
+          embedding?: number[] | null
+          url: string
+          title?: string | null
+          source_website?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          content?: string
+          embedding?: number[] | null
+          url?: string
+          title?: string | null
+          source_website?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      search_faq_embeddings: {
+        Args: {
+          query_embedding: number[]
+          match_threshold?: number
+          match_count?: number
+        }
+        Returns: {
+          content: string
+          title: string | null
+          url: string
+          similarity: number
+          source_website: string | null
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
@@ -140,3 +183,7 @@ export type UpdateModelSettings = Database['public']['Tables']['model_settings']
 export type Offer = Database['public']['Tables']['offers']['Row']
 export type InsertOffer = Database['public']['Tables']['offers']['Insert']
 export type UpdateOffer = Database['public']['Tables']['offers']['Update']
+
+export type FAQEmbedding = Database['public']['Tables']['faq_embeddings']['Row']
+export type InsertFAQEmbedding = Database['public']['Tables']['faq_embeddings']['Insert']
+export type UpdateFAQEmbedding = Database['public']['Tables']['faq_embeddings']['Update']
