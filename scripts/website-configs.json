@@ -8,7 +8,7 @@
     "fallbackUrls": [
       "/"
     ],
-    "rateLimit": 2500,
+    "rateLimit": 500,
     "chunkSize": 900,
     "chunkOverlap": 150
   }

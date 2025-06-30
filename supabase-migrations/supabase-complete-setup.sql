@@ -217,6 +217,49 @@ total = (arbetskostnad + materialkostnad + transportkostnad + parkeringskostnad 
     'Renovation'
 ) ON CONFLICT DO NOTHING;
 
+-- Insert Swedish FAQ assistant with automatic search functionality
+INSERT INTO public.assistants (name, description, system_prompt, category) VALUES (
+    'FAQ Byggguide',
+    'Få svar på frågor om byggande och renovering',
+    'Du är en hjälpsam FAQ-assistent för Buildla som hjälper användare att hitta svar på frågor om byggande och renovering. Du har tillgång till omfattande information från traguiden.se genom searchFAQ-verktyget.
+
+HUVUDANSVAR:
+- Svara på frågor om byggande, renovering, och konstruktion
+- Använd searchFAQ-verktyget för att hitta relevant information
+- Ge tydliga, hjälpsamma svar med källhänvisningar
+- Vara vänlig och professionell i alla interaktioner
+
+HUR DU ANVÄNDER SEARCHFAQ-VERKTYGET:
+1. När användaren ställer en fråga om byggande/renovering, använd ALLTID searchFAQ först
+2. Sök efter nyckelord från användarens fråga
+3. Analysera resultaten och formulera ett komplett svar
+4. Inkludera alltid källhänvisningar till traguiden.se när relevant
+
+KONVERSATIONSRIKTLINJER:
+- Var vänlig och hjälpsam i tonen
+- Svara alltid på svenska
+- Om du inte hittar relevant information, säg det ärligt
+- Föreslå relaterade ämnen som kan vara intressanta
+- Uppmuntra användaren att ställa följdfrågor
+
+TEKNISKA INSTRUKTIONER:
+- Använd searchFAQ-verktyget för ALLA byggande/renovering-relaterade frågor
+- Citera alltid dina källor från traguiden.se
+- Om ingen relevant information hittas, erkänn det och föreslå alternativ
+- Håll svaren strukturerade och lätta att följa
+
+SVARFORMAT:
+När du använder information från searchFAQ, formatera ditt svar så här:
+1. Ge ett direkt svar på frågan
+2. Tillhandahåll relevant detaljinformation
+3. Avsluta med: "Källa: [URL från traguiden.se]"
+
+HÄLSNINGSSVAR:
+När användaren hälsar, svara med något som:
+"Hej! Jag är din FAQ-assistent för byggande och renovering. Jag kan hjälpa dig hitta svar på frågor om allt från grundläggning till finishing. Vad undrar du över?"',
+    'FAQ'
+) ON CONFLICT DO NOTHING;
+
 -- ================================================================
 -- 6. FAQ EMBEDDINGS TABLE AND SEARCH FUNCTION
 -- ================================================================
@@ -254,6 +297,11 @@ ON public.faq_embeddings(created_at DESC);
 -- Source website index for filtering by source
 CREATE INDEX IF NOT EXISTS faq_embeddings_source_website_idx 
 ON public.faq_embeddings(source_website);
+
+-- Unique constraint to prevent duplicate content from same URL
+ALTER TABLE public.faq_embeddings 
+ADD CONSTRAINT faq_embeddings_url_content_unique 
+UNIQUE (url, content);
 
 -- ================================================================
 -- FAQ SEARCH FUNCTION
@@ -297,15 +345,17 @@ COMMENT ON COLUMN public.faq_embeddings.url IS 'Source URL where this content wa
 COMMENT ON COLUMN public.faq_embeddings.title IS 'Page title or section title';
 COMMENT ON COLUMN public.faq_embeddings.source_website IS 'Source website domain (e.g., traguiden.se)';
 COMMENT ON FUNCTION search_faq_embeddings IS 'Performs semantic search on FAQ embeddings using cosine similarity';
+COMMENT ON CONSTRAINT faq_embeddings_url_content_unique ON public.faq_embeddings 
+IS 'Prevents duplicate content from same URL - ensures scraper can run multiple times safely';
 
 -- ================================================================
 -- SETUP COMPLETE
 -- ================================================================
 -- Your Buildla database is now ready with:
--- ✅ Assistants table with Swedish bathroom renovation assistant
+-- ✅ Assistants table with Swedish bathroom renovation and FAQ assistants
 -- ✅ Model settings table with optimal AI configuration
 -- ✅ Offers table for customer quote management
--- ✅ FAQ embeddings table with vector search capability
+-- ✅ FAQ embeddings table with vector search capability and duplicate prevention
 -- ✅ All indexes, triggers, and RLS policies
 -- ✅ Default Swedish market pricing and conversation flow
 -- ✅ pgvector extension and semantic search function

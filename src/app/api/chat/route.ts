@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
       }),
       execute: async ({ query }) => {
         try {
-          const result = await searchFAQ(query, 5, 0.7);
+          const result = await searchFAQ(query, 5, 0.65);
           
           if (result.success && result.results && result.results.length > 0) {
             return {

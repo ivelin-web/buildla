@@ -10,6 +10,7 @@
  *   node scripts/faq-scraper.js --site=traguiden.se --test
  *   node scripts/faq-scraper.js --site=traguiden.se --limit=10
  *   node scripts/faq-scraper.js --site=traguiden.se --dry-run
+ *   node scripts/faq-scraper.js --site=traguiden.se --clean
  */
 
 import { chromium } from 'playwright';
@@ -37,6 +38,8 @@ const websiteConfigs = JSON.parse(
 const CONFIG = {
   DELAY_BETWEEN_BATCHES: 1000, // ms between embedding batches
   BATCH_SIZE: 20, // embeddings per batch
+  PAGE_BATCH_SIZE: 10, // pages to process together
+  PARALLEL_CONTEXTS: 5, // number of browser contexts for parallel processing
   TEST_LIMIT: 5, // pages for testing
 };
 
@@ -44,7 +47,7 @@ const CONFIG = {
 let currentSiteConfig = null;
 
 // Initialize clients
-let supabase, openai, browser, page;
+let supabase, openai, browser, contexts = [];
 
 /**
  * Initialize all required clients and services
@@ -74,9 +77,15 @@ async function initializeClients() {
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
   
-  page = await browser.newPage({
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-  });
+  // Create multiple contexts for parallel processing
+  log(`🔄 Creating ${CONFIG.PARALLEL_CONTEXTS} browser contexts...`);
+  for (let i = 0; i < CONFIG.PARALLEL_CONTEXTS; i++) {
+    const context = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    });
+    const page = await context.newPage();
+    contexts.push({ context, page, id: i + 1 });
+  }
   
   log('✅ Clients initialized successfully');
 }
@@ -208,8 +217,10 @@ function extractPageContent(htmlContent, url) {
 /**
  * Scrape a page using Playwright and extract content
  */
-async function scrapePageContent(url) {
+async function scrapePageContent(url, contextInfo) {
   try {
+    const { page } = contextInfo;
+    
     await page.goto(url, { 
       waitUntil: 'networkidle',
       timeout: 30000 
@@ -259,7 +270,6 @@ function chunkText(content, title, url) {
       });
     }
   }
-  
   return chunks;
 }
 
@@ -314,7 +324,7 @@ async function storeEmbeddings(embeddings, dryRun = false) {
     
     log(`💾 Storing ${embeddings.length} embeddings...`);
     
-    // Insert with source_website
+    // Insert with source_website using ON CONFLICT DO NOTHING to prevent duplicates
     const { data, error } = await supabase
       .from('faq_embeddings')
       .insert(
@@ -325,13 +335,20 @@ async function storeEmbeddings(embeddings, dryRun = false) {
           title: item.title,
           source_website: currentSiteConfig.name.toLowerCase().replace(/[^a-z0-9]/g, '')
         }))
-      );
+      )
+      .select(); // Add select to get inserted rows count
     
     if (error) {
+      // Ignore duplicate key violations (constraint errors)
+      if (error.code === '23505') {
+        log(`⚠️ Some duplicates skipped - this is normal on re-runs`);
+        return null;
+      }
       throw error;
     }
     
-    log(`✅ Stored ${embeddings.length} embeddings successfully`);
+    const insertedCount = data ? data.length : embeddings.length;
+    log(`✅ Stored ${insertedCount} embeddings successfully`);
     return data;
     
   } catch (error) {
@@ -342,12 +359,36 @@ async function storeEmbeddings(embeddings, dryRun = false) {
 
 
 /**
+ * Clean existing data for fresh scraping
+ */
+async function cleanExistingData() {
+  try {
+    log('🧹 Cleaning existing FAQ data...');
+    
+    const { error } = await supabase
+      .from('faq_embeddings')
+      .delete()
+      .eq('source_website', currentSiteConfig.name.toLowerCase().replace(/[^a-z0-9]/g, ''));
+    
+    if (error) {
+      throw error;
+    }
+    
+    log('✅ Existing data cleaned successfully');
+  } catch (error) {
+    log(`❌ Error cleaning data: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
  * Main scraping process
  */
 async function main() {
   const args = process.argv.slice(2);
   const isTest = args.includes('--test');
   const isDryRun = args.includes('--dry-run');
+  const isClean = args.includes('--clean');
   const limitArg = args.find(arg => arg.startsWith('--limit='));
   const customLimit = limitArg ? parseInt(limitArg.split('=')[1]) : null;
   const siteArg = args.find(arg => arg.startsWith('--site='));
@@ -364,10 +405,15 @@ async function main() {
     validateSiteConfig(currentSiteConfig, siteName);
     
     log('🚀 Starting FAQ scraper...');
-    log(`📊 Mode: ${isTest ? 'TEST' : 'PRODUCTION'}${isDryRun ? ' (DRY-RUN)' : ''}`);
+    log(`📊 Mode: ${isTest ? 'TEST' : 'PRODUCTION'}${isDryRun ? ' (DRY-RUN)' : ''}${isClean ? ' (CLEAN)' : ''}`);
     log(`🌐 Website: ${currentSiteConfig.name} (${currentSiteConfig.baseUrl})`);
     
     await initializeClients();
+    
+    // Clean existing data if requested
+    if (isClean && !isDryRun) {
+      await cleanExistingData();
+    }
     
     // Get all URLs
     const allUrls = await getSitemapUrls();
@@ -383,37 +429,76 @@ async function main() {
     let totalChunks = 0;
     let totalPages = 0;
     
-    for (const [index, url] of urlsToProcess.entries()) {
-      try {
-        log(`📄 [${index + 1}/${urlsToProcess.length}] Processing: ${url}`);
-        
-        // Scrape page content
-        const pageData = await scrapePageContent(url);
-        
-        // Create chunks
-        const chunks = chunkText(pageData.content, pageData.title, pageData.url);
-        log(`✂️ Created ${chunks.length} chunks`);
-        
-        if (chunks.length > 0) {
-          // Generate embeddings
-          const embeddings = await generateEmbeddings(chunks);
-          
-          // Store in database
-          await storeEmbeddings(embeddings, isDryRun);
-          
-          totalChunks += chunks.length;
-          totalPages++;
-        }
-        
-        // Rate limiting
-        if (index < urlsToProcess.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, currentSiteConfig.rateLimit));
-        }
-        
-      } catch (error) {
-        log(`❌ Failed to process ${url}: ${error.message}`);
-        continue;
+    // Split URLs across multiple contexts for parallel processing
+    const urlChunks = [];
+    const chunkSize = Math.ceil(urlsToProcess.length / CONFIG.PARALLEL_CONTEXTS);
+    
+    for (let i = 0; i < CONFIG.PARALLEL_CONTEXTS; i++) {
+      const start = i * chunkSize;
+      const end = Math.min(start + chunkSize, urlsToProcess.length);
+      if (start < urlsToProcess.length) {
+        urlChunks.push(urlsToProcess.slice(start, end));
       }
+    }
+    
+    log(`🔄 Processing ${urlsToProcess.length} URLs across ${urlChunks.length} parallel contexts`);
+    
+    // Process each chunk in parallel using different contexts
+    const contextPromises = urlChunks.map(async (urls, contextIndex) => {
+      const contextInfo = contexts[contextIndex];
+      const allChunks = [];
+      
+      // Process pages in batches within each context
+      for (let i = 0; i < urls.length; i += CONFIG.PAGE_BATCH_SIZE) {
+        const batch = urls.slice(i, i + CONFIG.PAGE_BATCH_SIZE);
+        
+        for (const [batchIndex, url] of batch.entries()) {
+          try {
+            const globalIndex = contextIndex * chunkSize + i + batchIndex;
+            log(`[C${contextInfo.id}] ${globalIndex + 1}/${urlsToProcess.length}: Processing...`);
+            
+            // Scrape page content
+            const pageData = await scrapePageContent(url, contextInfo);
+            
+            // Create chunks
+            const chunks = chunkText(pageData.content, pageData.title, pageData.url);
+            log(`[C${contextInfo.id}] ${globalIndex + 1}/${urlsToProcess.length}: ${chunks.length} chunks ✓`);
+            
+            if (chunks.length > 0) {
+              allChunks.push(...chunks);
+            }
+            
+            // Rate limiting between pages
+            if (batchIndex < batch.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, currentSiteConfig.rateLimit));
+            }
+            
+          } catch (error) {
+            log(`[C${contextInfo.id}] ❌ Failed: ${error.message}`);
+            continue;
+          }
+        }
+        
+        // Short delay between batches within context
+        if (i + CONFIG.PAGE_BATCH_SIZE < urls.length) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      
+      return allChunks;
+    });
+    
+    // Wait for all contexts to complete and collect results
+    const allContextChunks = await Promise.all(contextPromises);
+    const allChunks = allContextChunks.flat();
+    totalPages = urlsToProcess.length;
+    
+    // Process all chunks together
+    if (allChunks.length > 0) {
+      log(`🧠 Generating embeddings for ${allChunks.length} chunks from all contexts`);
+      const embeddings = await generateEmbeddings(allChunks);
+      await storeEmbeddings(embeddings, isDryRun);
+      totalChunks += allChunks.length;
     }
     
     log('\n🎉 Scraping completed!');

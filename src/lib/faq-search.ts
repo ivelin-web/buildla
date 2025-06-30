@@ -14,7 +14,7 @@ export interface FAQSearchResult {
 export async function searchFAQ(
   query: string,
   limit: number = 5,
-  threshold: number = 0.7
+  threshold: number = 0.65
 ): Promise<{ success: boolean; results?: FAQSearchResult[]; error?: string }> {
   try {
     if (!query.trim()) {

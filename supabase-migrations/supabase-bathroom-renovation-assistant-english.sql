@@ -1,5 +1,5 @@
 -- ================================================================
--- SWITCH ASSISTANT TO ENGLISH (NATURAL CONVERSATION)
+-- SWITCH BATHROOM RENOVATION ASSISTANT TO ENGLISH
 -- ================================================================
 -- Run this script to switch the bathroom renovation assistant to English
 -- with natural conversation flow and Swedish market pricing.
