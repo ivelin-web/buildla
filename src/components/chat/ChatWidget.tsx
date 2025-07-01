@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SkeletonMessage } from '@/components/ui/skeleton-message';
+import { SourceList } from '@/components/ui/source-list';
 import { Assistant } from '@/types';
 import { ModelSettings } from '@/lib/supabase/types';
 import { Paperclip, X } from 'lucide-react';
@@ -22,6 +23,13 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
   const [selectedAssistant, setSelectedAssistant] = useState<string>('');
   const [isSessionComplete, setIsSessionComplete] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<FileList | undefined>(undefined);
+  const [faqSources, setFaqSources] = useState<{
+    content: string;
+    title: string | null;
+    url: string;
+    similarity: number;
+    source: string | null;
+  }[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -73,9 +81,34 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
       modelSettings: modelSettings
     },
     onFinish: (message) => {
-      // Check for successful saveOffer tool execution via message.parts
+      // Check for FAQ search tool results to extract sources
       if (message.parts) {
-        const toolResults = message.parts.filter(
+        const faqToolResults = message.parts.filter(
+          (part) =>
+            part.type === 'tool-invocation' &&
+            'toolInvocation' in part &&
+            part.toolInvocation?.state === 'result' &&
+            part.toolInvocation?.toolName === 'searchFAQ'
+        );
+
+        for (const part of faqToolResults) {
+          try {
+            if ('toolInvocation' in part && part.toolInvocation?.state === 'result') {
+              const result = part.toolInvocation.result;
+              const data = typeof result === 'string' ? JSON.parse(result) : result;
+              
+              if (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results)) {
+                setFaqSources(data.results);
+                break;
+              }
+            }
+          } catch (error) {
+            console.error('Failed to parse FAQ tool result:', error);
+          }
+        }
+
+        // Check for successful saveOffer tool execution via message.parts
+        const offerToolResults = message.parts.filter(
           (part) =>
             part.type === 'tool-invocation' &&
             'toolInvocation' in part &&
@@ -83,7 +116,7 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
             part.toolInvocation?.toolName === 'saveOffer'
         );
 
-        for (const part of toolResults) {
+        for (const part of offerToolResults) {
           try {
             if ('toolInvocation' in part && part.toolInvocation?.state === 'result') {
               const result = part.toolInvocation.result;
@@ -113,6 +146,7 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
   const resetChat = async () => {
     setMessages([]);
     setIsSessionComplete(false);
+    setFaqSources([]);
     
     // Auto-start conversation using append
     if (selectedAssistant) {
@@ -151,6 +185,7 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
     setSelectedAssistant(assistantId);
     setIsSessionComplete(false);
     setMessages([]); // Clear previous messages
+    setFaqSources([]);
     
     // Auto-start conversation using append - this automatically triggers AI response
     try {
@@ -250,7 +285,20 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
                         ))}
                       </div>
                     )}
-                    {message.content}
+                    
+                    {/* Display content and auto-sources */}
+                    {message.role === 'assistant' ? (
+                      <>
+                        {message.content}
+                        {index === messages.length - 1 && faqSources.length > 0 && (
+                          <SourceList 
+                            sources={faqSources.slice(0, 3)} 
+                          />
+                        )}
+                      </>
+                    ) : (
+                      message.content
+                    )}
                   </div>
                 </div>
               );

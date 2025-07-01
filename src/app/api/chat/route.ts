@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
       modelSettings 
     } = await request.json();
 
+
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json(
         { error: 'Messages array is required' },
@@ -133,16 +134,19 @@ export async function POST(request: NextRequest) {
           const result = await searchFAQ(query, 5, 0.5);
           
           if (result.success && result.results && result.results.length > 0) {
+            const sourcesData = result.results.map(item => ({
+              content: item.content,
+              title: item.title,
+              url: item.url,
+              similarity: Math.round(item.similarity * 100),
+              source: item.source_website
+            }));
+
+
             return {
               success: true,
-              results: result.results.map(item => ({
-                content: item.content,
-                title: item.title,
-                url: item.url,
-                similarity: Math.round(item.similarity * 100),
-                source: item.source_website
-              })),
-              message: `Found ${result.results.length} relevant FAQ entries. Use this information to answer the user's question and include source citations from the URLs provided.`
+              results: sourcesData,
+              message: `Found ${result.results.length} relevant FAQ entries. Use this information to answer the user's question.`
             };
           } else {
             return {
@@ -151,6 +155,7 @@ export async function POST(request: NextRequest) {
             };
           }
         } catch (error) {
+          console.error('Error in searchFAQ tool:', error);
           return {
             success: false,
             message: 'FAQ search is temporarily unavailable. Please provide a helpful response based on your general knowledge.'
