@@ -130,11 +130,9 @@ export async function POST(request: NextRequest) {
       }),
       execute: async ({ query }) => {
         try {
-          console.log(`🤖 Chat Tool: FAQ search tool called with query: "${query}"`);
           const result = await searchFAQ(query, 5, 0.5);
           
           if (result.success && result.results && result.results.length > 0) {
-            console.log(`✅ Chat Tool: FAQ search successful - returning ${result.results.length} results`);
             return {
               success: true,
               results: result.results.map(item => ({
@@ -147,14 +145,12 @@ export async function POST(request: NextRequest) {
               message: `Found ${result.results.length} relevant FAQ entries. Use this information to answer the user's question and include source citations from the URLs provided.`
             };
           } else {
-            console.log(`⚠️ Chat Tool: FAQ search returned no results - Error: ${result.error || 'Unknown'}`);
             return {
               success: false,
               message: result.error || 'No relevant FAQ content found for this query. Please provide a helpful response based on your general knowledge.'
             };
           }
         } catch (error) {
-          console.error('❌ Chat Tool: Error in searchFAQ tool:', error);
           return {
             success: false,
             message: 'FAQ search is temporarily unavailable. Please provide a helpful response based on your general knowledge.'
