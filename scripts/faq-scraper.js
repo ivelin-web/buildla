@@ -21,6 +21,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { config } from 'dotenv';
+import crypto from 'crypto';
 
 // ES module compatibility
 const __filename = fileURLToPath(import.meta.url);
@@ -333,7 +334,8 @@ async function storeEmbeddings(embeddings, dryRun = false) {
           embedding: item.embedding,
           url: item.url,
           title: item.title,
-          source_website: currentSiteConfig.name.toLowerCase().replace(/[^a-z0-9]/g, '')
+          source_website: currentSiteConfig.name.toLowerCase().replace(/[^a-z0-9]/g, ''),
+          content_hash: crypto.createHash('md5').update(item.content).digest('hex')
         }))
       )
       .select(); // Add select to get inserted rows count
