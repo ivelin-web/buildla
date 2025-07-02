@@ -31,7 +31,7 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
 
   const validateFileSize = (file: File): boolean => {
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      toast.error(`File size exceeds ${MAX_FILE_SIZE_MB}MB limit. Please choose a smaller file.`);
+      toast.error(`Filstorleken överskrider ${MAX_FILE_SIZE_MB}MB-gränsen. Välj en mindre fil.`);
       return false;
     }
     return true;
@@ -188,7 +188,7 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
         </label>
         <Select value={selectedAssistant} onValueChange={handleAssistantChange}>
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select an assistant..." />
+            <SelectValue placeholder="Välj en assistent..." />
           </SelectTrigger>
           <SelectContent>
             {assistants.map((assistant) => (
@@ -204,11 +204,11 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
       <div className="h-96 overflow-y-auto p-5 bg-gray-50">
         {!selectedAssistant ? (
           <div className="flex items-center justify-center h-full text-gray-500 italic">
-            Please select an assistant above to start testing
+            Välj en assistent ovan för att komma igång
           </div>
         ) : messages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-gray-500 italic">
-            Start a conversation...
+            Starta en konversation...
           </div>
         ) : (
           <>
@@ -287,13 +287,13 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
         {isSessionComplete ? (
           <div className="flex flex-col gap-3">
             <div className="text-center text-sm text-gray-600">
-              Session completed! You can start a new conversation.
+              Sessionen är klar! Du kan starta en ny konversation.
             </div>
             <Button
               onClick={resetChat}
-              className="w-full rounded-full bg-green-500 hover:bg-green-600 text-white"
+              className="w-full rounded-full bg-green-500 hover:bg-green-600 text-white cursor-pointer"
             >
-              Start New Conversation
+              Starta ny konversation
             </Button>
           </div>
         ) : (
@@ -323,8 +323,8 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
               onChange={handleInputChange}
               placeholder={
                 selectedAssistant
-                  ? 'Type your message...'
-                  : 'Select an assistant first...'
+                  ? 'Skriv ditt meddelande...'
+                  : 'Välj en assistent först...'
               }
               disabled={!selectedAssistant || isLoading}
               className="flex-1 rounded-full"
@@ -348,7 +348,7 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
                   : 'cursor-pointer'
               }`}
             >
-              Send
+              Skicka
             </Button>
           </form>
           </>
