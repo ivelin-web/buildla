@@ -10,13 +10,15 @@ const generateSnippet = () => {
     : 'http://localhost:3000';
     
   return `<!-- Buildla AI Chat Widget -->
-<iframe 
-  src="${baseUrl}/widget" 
-  width="500" 
-  height="600"
-  style="border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);"
-  title="Buildla AI Assistant">
-</iframe>`;
+<div style="width: 100%; max-width: 500px; margin: 0 auto;">
+  <iframe 
+    src="${baseUrl}/widget" 
+    width="100%" 
+    height="600"
+    style="border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); min-width: 320px;"
+    title="Buildla AI Assistant">
+  </iframe>
+</div>`;
 };
 
 export default function CopyCodeButton() {

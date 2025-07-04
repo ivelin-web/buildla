@@ -107,7 +107,11 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
   });
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ 
+      behavior: 'smooth', 
+      block: 'nearest', 
+      inline: 'nearest' 
+    });
   };
 
   const resetChat = async () => {
@@ -172,7 +176,7 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
   }, [isLoading, messages]);
 
   return (
-    <div className={`max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden ${className}`}>
+    <div className={`${isEmbed ? 'w-full' : 'max-w-2xl mx-auto'} bg-white overflow-hidden ${isEmbed ? '' : 'rounded-xl shadow-lg'} ${className}`}>
       {/* Header */}
       {!isEmbed && (
         <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-5 text-center">
