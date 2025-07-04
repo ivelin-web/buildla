@@ -184,7 +184,7 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
       {/* Assistant Selector */}
       <div className="p-5 border-b border-gray-200">
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Choose assistant (for testing):
+          Välj assistent:
         </label>
         <Select value={selectedAssistant} onValueChange={handleAssistantChange}>
           <SelectTrigger className="w-full">

@@ -40,6 +40,23 @@ export async function middleware(request: NextRequest) {
   
   // Redirect unauthenticated users trying to access protected routes
   if (isProtectedRoute && !user) {
+    // Allow API access only to the allowed Squarespace sites
+    if (pathname.startsWith('/api/')) {
+      const origin = request.headers.get('origin')
+      const referer = request.headers.get('referer')
+      
+      const allowedOrigins = [
+        'https://groundhog-cube-htrn.squarespace.com'
+      ]
+      
+      // Check if request comes from allowed domains
+      if (allowedOrigins.some(domain => 
+        origin?.includes(domain) || referer?.includes(domain)
+      )) {
+        return supabaseResponse // Allow API access
+      }
+    }
+    
     return NextResponse.redirect(new URL('/auth', request.url))
   }
   
