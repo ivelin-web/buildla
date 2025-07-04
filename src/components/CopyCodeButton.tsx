@@ -15,7 +15,7 @@ const generateSnippet = () => {
     src="${baseUrl}/widget" 
     width="100%" 
     height="600"
-    style="border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); min-width: 320px;"
+    style="border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); min-width: 320px; max-height: 80vh;"
     title="Buildla AI Assistant">
   </iframe>
 </div>`;

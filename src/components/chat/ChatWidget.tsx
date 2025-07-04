@@ -205,7 +205,7 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
       </div>
 
       {/* Messages */}
-      <div className="h-96 overflow-y-auto p-5 bg-gray-50">
+      <div className={`${isEmbed ? 'h-80 sm:h-96' : 'h-96'} overflow-y-auto p-5 bg-gray-50`}>
         {!selectedAssistant ? (
           <div className="flex items-center justify-center h-full text-gray-500 italic">
             Välj en assistent ovan för att komma igång

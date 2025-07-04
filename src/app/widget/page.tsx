@@ -2,7 +2,7 @@ import ChatWidget from '@/components/chat/ChatWidget';
 
 export default function WidgetPage() {
   return (
-    <div className="min-h-screen">
+    <div>
       <ChatWidget isEmbed={true} />
     </div>
   );
