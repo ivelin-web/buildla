@@ -40,13 +40,13 @@ export async function middleware(request: NextRequest) {
   
   // Redirect unauthenticated users trying to access protected routes
   if (isProtectedRoute && !user) {
-    // Allow API access only to the allowed Squarespace sites
+    // Allow API access only to the allowed sites
     if (pathname.startsWith('/api/')) {
       const origin = request.headers.get('origin')
       const referer = request.headers.get('referer')
       
       const allowedOrigins = [
-        'https://groundhog-cube-htrn.squarespace.com'
+        'https://buildla.vercel.app'
       ]
       
       // Check if request comes from allowed domains
