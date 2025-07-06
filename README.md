@@ -10,15 +10,19 @@ A Next.js platform that enables businesses to create intelligent AI assistants f
 - 🎨 **Modern UI** - Built with Next.js 15, Tailwind CSS 4, and Radix UI components
 - 🔗 **Embeddable Chat Widget** - Easy integration code for external websites
 - 🇸🇪 **Swedish Market Focus** - ROT tax deduction calculations and local pricing
+- 🔍 **Semantic FAQ Search** - AI-powered FAQ system with vector embeddings and source citations
+- 🕷️ **Web Scraping** - Automated content ingestion from construction/renovation websites
 
 ## Tech Stack
 
 - **Next.js 15.3.3** - App Router with React 19
 - **TypeScript** - Full type safety
-- **Supabase** - PostgreSQL database with real-time features
-- **OpenAI API** - AI chat completions (gpt-4.1-nano)
+- **Supabase** - PostgreSQL database with real-time features and pgvector
+- **OpenAI API** - AI chat completions (gpt-4.1-nano) and embeddings
 - **Tailwind CSS 4** - Modern styling
 - **Radix UI** - Accessible component library
+- **Playwright** - Web scraping automation
+- **Cheerio** - HTML parsing and manipulation
 
 ## Setup
 
@@ -48,6 +52,17 @@ A Next.js platform that enables businesses to create intelligent AI assistants f
    pnpm run dev
    ```
 
+5. **Optional - Run FAQ Scraper:**
+   ```bash
+   # Scrape FAQ content from construction websites
+   node scripts/faq-scraper.js --site=traguiden.se
+   
+   # Available options:
+   node scripts/faq-scraper.js --site=traguiden.se --test     # Test mode
+   node scripts/faq-scraper.js --site=traguiden.se --dry-run # Preview without saving
+   node scripts/faq-scraper.js --site=traguiden.se --clean   # Clean existing data first
+   ```
+
 ## Application Routes
 
 ### Public Routes
@@ -63,7 +78,7 @@ A Next.js platform that enables businesses to create intelligent AI assistants f
 
 ## API Endpoints
 
-- `POST /api/chat` - Chat interactions with OpenAI integration
+- `POST /api/chat` - Chat interactions with OpenAI integration (saveOffer, searchFAQ tools)
 - `GET /api/assistants` - Fetch available assistants from database
 
 ## Authentication
@@ -82,7 +97,7 @@ The application uses Supabase Authentication with admin-only access:
 
 ## Database Schema
 
-The application uses Supabase with three main tables:
+The application uses Supabase with four main tables:
 
 ```sql
 -- AI Assistant configurations
@@ -118,6 +133,18 @@ offers (
   created_at timestamp,
   updated_at timestamp
 )
+
+-- FAQ vector embeddings for semantic search
+faq_embeddings (
+  id uuid PRIMARY KEY,
+  content text NOT NULL,
+  url text NOT NULL,
+  source text NOT NULL,
+  content_hash text NOT NULL,
+  embedding vector(1536),
+  created_at timestamp,
+  updated_at timestamp
+)
 ```
 
 ## Key Features
@@ -140,6 +167,12 @@ offers (
 - Multi-assistant support with dynamic selection
 - Copy-to-clipboard integration code
 
+### FAQ System with Semantic Search
+- AI-powered FAQ responses using vector embeddings
+- Web scraping of wood construction content
+- Source attribution with automatic citations
+- Wood construction specialist assistant with domain expertise
+
 ## Deployment
 
 Deploy to Vercel or similar platform:
@@ -152,6 +185,8 @@ Required environment variables:
 - `OPENAI_API_KEY` - OpenAI API key
 - `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key
+- `NEXT_PUBLIC_APP_URL` - Application URL
+- `NEXT_PUBLIC_MAX_FILE_SIZE_MB` - Maximum file size in MB
 
 ## Usage
 
