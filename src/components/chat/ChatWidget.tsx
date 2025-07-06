@@ -176,7 +176,7 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
   }, [isLoading, messages]);
 
   return (
-    <div className={`${isEmbed ? 'w-full' : 'max-w-2xl mx-auto'} bg-white overflow-hidden ${isEmbed ? '' : 'rounded-xl shadow-lg'} ${className}`}>
+    <div className={`${isEmbed ? 'w-full flex flex-col h-full' : 'max-w-2xl mx-auto'} bg-white overflow-hidden ${isEmbed ? '' : 'rounded-xl shadow-lg'} ${className}`}>
       {/* Header */}
       {!isEmbed && (
         <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-5 text-center">
@@ -205,7 +205,7 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
       </div>
 
       {/* Messages */}
-      <div className={`${isEmbed ? 'h-80 sm:h-96' : 'h-96'} overflow-y-auto p-5 bg-gray-50`}>
+      <div className={`${isEmbed ? 'flex-1' : 'h-96'} overflow-y-auto p-5 bg-gray-50`}>
         {!selectedAssistant ? (
           <div className="flex items-center justify-center h-full text-gray-500 italic">
             Välj en assistent ovan för att komma igång

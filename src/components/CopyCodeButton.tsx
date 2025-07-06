@@ -10,15 +10,47 @@ const generateSnippet = () => {
     : 'http://localhost:3000';
     
   return `<!-- Buildla AI Chat Widget -->
-<div style="width: 100%; max-width: 500px; margin: 0 auto;">
-  <iframe 
-    src="${baseUrl}/widget" 
-    width="100%" 
-    height="600"
-    style="border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); min-width: 320px; max-height: 80vh;"
+<div id="buildla-container" style="width: 100%; height: 400px; max-width: max(500px, 85vw); margin: 0 auto;">
+  <iframe
+    src="${baseUrl}/widget"
+    style="display: block; width: 100%; height: 100%; border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);"
     title="Buildla AI Assistant">
   </iframe>
-</div>`;
+</div>
+<script>
+  (function() {
+    function initBuildlaWidget() {
+      var container = document.getElementById('buildla-container');
+      var block = container.closest('.sqs-block');
+      
+      if (container && block) {
+        var setHeight = function() {
+          // Get height from the resizable Squarespace block.
+          var blockHeight = block.clientHeight;
+          // Calculate max height as 90% of the viewport height to avoid overflow.
+          var maxHeight = window.innerHeight * 0.9;
+          // Use the smaller of the two values.
+          var newHeight = Math.min(blockHeight, maxHeight);
+          
+          if (newHeight > 0) {
+            container.style.height = newHeight + 'px';
+          }
+        };
+        
+        setHeight();
+        // Update on resize of the block (in editor) or the window (for responsiveness).
+        new ResizeObserver(setHeight).observe(block);
+        window.addEventListener('resize', setHeight);
+      }
+    }
+    
+    if (document.readyState === 'complete') {
+      initBuildlaWidget();
+    } else {
+      window.addEventListener('load', initBuildlaWidget);
+    }
+  })();
+</script>`;
 };
 
 export default function CopyCodeButton() {
