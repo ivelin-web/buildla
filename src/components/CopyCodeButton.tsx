@@ -10,7 +10,7 @@ const generateSnippet = () => {
     : 'http://localhost:3000';
     
   return `<!-- Buildla AI Chat Widget -->
-<div id="buildla-container" style="width: 100%; height: 400px; max-width: max(500px, 85vw); margin: 0 auto;">
+<div id="buildla-container" style="width: 100%; height: 400px; max-width: 500px; margin: 0 auto;">
   <iframe
     src="${baseUrl}/widget"
     style="display: block; width: 100%; height: 100%; border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);"
