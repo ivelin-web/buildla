@@ -46,7 +46,7 @@ export async function middleware(request: NextRequest) {
       const referer = request.headers.get('referer')
       
       const allowedOrigins = [
-        'https://buildla.vercel.app'
+        process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
       ]
       
       // Check if request comes from allowed domains
