@@ -40,7 +40,7 @@ const CONFIG = {
   DELAY_BETWEEN_BATCHES: 1000, // ms between embedding batches
   BATCH_SIZE: 20, // embeddings per batch
   PAGE_BATCH_SIZE: 10, // pages to process together
-  PARALLEL_CONTEXTS: 5, // number of browser contexts for parallel processing
+  PARALLEL_CONTEXTS: 10, // number of browser contexts for parallel processing
   TEST_LIMIT: 5, // pages for testing
 };
 
@@ -178,44 +178,6 @@ async function getSitemapUrls() {
 }
 
 /**
- * Extract and clean content from HTML using cheerio
- */
-function extractPageContent(htmlContent, url) {
-  const $ = cheerio.load(htmlContent);
-  
-  // Remove unwanted elements using config
-  const excludeSelector = currentSiteConfig.excludeSelectors.join(', ');
-  $(excludeSelector).remove();
-  $('[class*="nav"], [class*="menu"], [class*="sidebar"], [class*="ad"]').remove();
-  
-  // Extract title
-  const title = $('title').text().trim() || $('h1').first().text().trim() || '';
-  
-  // Extract main content using config selectors
-  const contentSelector = currentSiteConfig.contentSelectors.join(', ');
-  const mainContent = $(contentSelector).first();
-  const contentText = mainContent.length > 0 
-    ? mainContent.text() 
-    : $('body').text();
-  
-  // Clean up text
-  const cleanText = contentText
-    .replace(/\s+/g, ' ')
-    .replace(/\n\s*\n/g, '\n')
-    .trim();
-  
-  if (cleanText.length < 100) {
-    throw new Error('Content too short - likely extraction failed');
-  }
-  
-  return {
-    url,
-    title,
-    content: cleanText
-  };
-}
-
-/**
  * Scrape a page using Playwright and extract content
  */
 async function scrapePageContent(url, contextInfo) {
@@ -230,17 +192,51 @@ async function scrapePageContent(url, contextInfo) {
     // Wait for dynamic content to load
     await page.waitForTimeout(1000);
     
-    // Try to expand any accordions or collapsible content
-    try {
-      await page.locator('details:not([open])').click({ timeout: 2000 });
-      await page.locator('.accordion:not(.expanded)').click({ timeout: 2000 });
-      await page.locator('[data-toggle="collapse"]:not(.collapsed)').click({ timeout: 2000 });
-    } catch {
-      // Ignore if no expandable content found
+    // Extract content directly using Playwright best practices
+    // This gets ALL text content including hidden accordion content
+    const title = await page.locator('title').textContent() || 
+                  await page.locator('h1').first().textContent() || '';
+    
+    // Remove unwanted elements and extract all content using Playwright
+    const contentText = await page.evaluate((excludeSelectors) => {
+      // Remove unwanted elements
+      const excludeElements = document.querySelectorAll([
+        'script', 'style', 'nav', 'header', 'footer', 
+        '.navigation', '.menu', '.sidebar', '.advertisement', 
+        '.cookie-notice', '[class*="nav"]', '[class*="menu"]', 
+        '[class*="sidebar"]', '[class*="ad"]',
+        ...excludeSelectors
+      ].join(', '));
+      
+      excludeElements.forEach(el => el.remove());
+      
+      // Get all text content from main content areas
+      const contentSelectors = ['main', '.content', 'article', '.post', 'body'];
+      for (const selector of contentSelectors) {
+        const element = document.querySelector(selector);
+        if (element) {
+          return element.textContent || element.innerText || '';
+        }
+      }
+      
+      return document.body.textContent || document.body.innerText || '';
+    }, currentSiteConfig.excludeSelectors);
+    
+    // Clean up text
+    const cleanText = contentText
+      .replace(/\s+/g, ' ')
+      .replace(/\n\s*\n/g, '\n')
+      .trim();
+    
+    if (cleanText.length < 100) {
+      throw new Error('Content too short - likely extraction failed');
     }
     
-    const htmlContent = await page.content();
-    return extractPageContent(htmlContent, url);
+    return {
+      url,
+      title: title.trim(),
+      content: cleanText
+    };
     
   } catch (error) {
     log(`❌ Error scraping ${url}: ${error.message}`);
@@ -314,7 +310,7 @@ async function generateEmbeddings(chunks) {
 }
 
 /**
- * Store embeddings in Supabase
+ * Store embeddings in Supabase using batch insertion
  */
 async function storeEmbeddings(embeddings, dryRun = false) {
   try {
@@ -323,35 +319,63 @@ async function storeEmbeddings(embeddings, dryRun = false) {
       return null;
     }
     
-    log(`💾 Storing ${embeddings.length} embeddings...`);
+    log(`💾 Storing ${embeddings.length} embeddings in batches...`);
     
-    // Insert with source_website using ON CONFLICT DO NOTHING to prevent duplicates
-    const { data, error } = await supabase
-      .from('faq_embeddings')
-      .insert(
-        embeddings.map(item => ({
-          content: item.content,
-          embedding: item.embedding,
-          url: item.url,
-          title: item.title,
-          source_website: currentSiteConfig.name.toLowerCase().replace(/[^a-z0-9]/g, ''),
-          content_hash: crypto.createHash('md5').update(item.content).digest('hex')
-        }))
-      )
-      .select(); // Add select to get inserted rows count
+    const BATCH_SIZE = 200;
+    const BATCH_DELAY = 300; // 300ms delay between batches to avoid DB timeouts
+    const totalBatches = Math.ceil(embeddings.length / BATCH_SIZE);
+    let totalInserted = 0;
     
-    if (error) {
-      // Ignore duplicate key violations (constraint errors)
-      if (error.code === '23505') {
-        log(`⚠️ Some duplicates skipped - this is normal on re-runs`);
-        return null;
+    // Process embeddings in batches
+    for (let i = 0; i < embeddings.length; i += BATCH_SIZE) {
+      const batch = embeddings.slice(i, i + BATCH_SIZE);
+      const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+      
+      try {
+        log(`💾 Storing batch ${batchNumber}/${totalBatches} (${batch.length} embeddings)`);
+        
+        // Insert batch with source_website using ON CONFLICT DO NOTHING to prevent duplicates
+        const { data, error } = await supabase
+          .from('faq_embeddings')
+          .insert(
+            batch.map(item => ({
+              content: item.content,
+              embedding: item.embedding,
+              url: item.url,
+              title: item.title,
+              source_website: currentSiteConfig.name.toLowerCase().replace(/[^a-z0-9]/g, ''),
+              content_hash: crypto.createHash('md5').update(item.content).digest('hex')
+            }))
+          )
+          .select(); // Add select to get inserted rows count
+        
+        if (error) {
+          // Ignore duplicate key violations (constraint errors)
+          if (error.code === '23505') {
+            log(`⚠️ Batch ${batchNumber}: Some duplicates skipped - this is normal on re-runs`);
+          } else {
+            throw error;
+          }
+        }
+        
+        const insertedCount = data ? data.length : batch.length;
+        totalInserted += insertedCount;
+        log(`✅ Batch ${batchNumber}/${totalBatches} completed (${insertedCount} inserted)`);
+        
+        // Add delay between batches (except for the last one)
+        if (i + BATCH_SIZE < embeddings.length) {
+          await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
+        }
+        
+      } catch (batchError) {
+        log(`❌ Error in batch ${batchNumber}: ${batchError.message}`);
+        // Continue with next batch instead of failing completely
+        continue;
       }
-      throw error;
     }
     
-    const insertedCount = data ? data.length : embeddings.length;
-    log(`✅ Stored ${insertedCount} embeddings successfully`);
-    return data;
+    log(`✅ Completed storing embeddings: ${totalInserted}/${embeddings.length} successfully inserted`);
+    return totalInserted;
     
   } catch (error) {
     log(`❌ Error storing embeddings: ${error.message}`);

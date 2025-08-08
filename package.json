@@ -6,7 +6,10 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "faq:traguiden": "node scripts/faq-scraper.js --site=traguiden.se",
+    "faq:traguiden:dry": "node scripts/faq-scraper.js --site=traguiden.se --dry-run",
+    "faq:traguiden:limit10": "node scripts/faq-scraper.js --site=traguiden.se --limit=10"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.3.22",
