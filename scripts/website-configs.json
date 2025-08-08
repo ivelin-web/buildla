@@ -1,0 +1,15 @@
+{
+  "traguiden.se": {
+    "name": "TråGuiden",
+    "baseUrl": "https://www.traguiden.se",
+    "sitemapUrl": "https://www.traguiden.se/sitemap.xml",
+    "contentSelectors": ["main", ".content", "article", ".post"],
+    "excludeSelectors": ["nav", "header", "footer", ".navigation", ".menu", ".sidebar", ".advertisement", ".cookie-notice"],
+    "fallbackUrls": [
+      "/"
+    ],
+    "rateLimit": 500,
+    "chunkSize": 900,
+    "chunkOverlap": 150
+  }
+}

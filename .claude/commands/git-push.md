@@ -33,7 +33,13 @@ git add .
 git add <filename>
 ```
 
-### 2. Create commit
+### 2. Review changes before committing
+```bash
+git diff --cached
+```
+*Review the staged changes to understand what was modified and write a better commit message*
+
+### 3. Create commit
 ```bash
 git commit -m "Commit message."
 ```
@@ -46,7 +52,7 @@ git commit -m "Commit message."
 - No additional descriptions or mentions of tools used - don't mention things like "🤖 Generated with [Claude Code](https://claude.ai/code)"
 - Example format: "Add user authentication feature."
 
-### 3. Push to main
+### 4. Push to main
 ```bash
 git push origin main
 ```
@@ -60,6 +66,7 @@ pnpm run build
 
 # Git workflow
 git add .
+git diff --cached
 git commit -m "Fix navigation menu styling."
 git push origin main
 ```

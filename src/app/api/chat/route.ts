@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { getAssistantById } from '@/lib/actions/assistants';
 import { getModelSettings } from '@/lib/actions/model-settings';
 import { createOffer } from '@/lib/actions/offers';
+import { searchFAQ } from '@/lib/faq-search';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -16,6 +17,7 @@ export async function POST(request: NextRequest) {
       assistantId, 
       modelSettings 
     } = await request.json();
+
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json(
@@ -121,6 +123,47 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Define the FAQ search tool
+    const searchFAQTool = tool({
+      description: 'Search FAQ database for wood construction information from TräGuiden.se. CRITICAL: Use this tool for questions about wood construction, timber materials, or wood building techniques. IMPORTANT: You MUST ONLY use information from the search results - NEVER add your own knowledge or make assumptions beyond what the tool returns.',
+      parameters: z.object({
+        query: z.string().min(1).describe('The user question or search query to find relevant wood construction FAQ content'),
+      }),
+      execute: async ({ query }) => {
+        try {
+          const result = await searchFAQ(query, 5, 0.5);
+          
+          if (result.success && result.results && result.results.length > 0) {
+            const sourcesData = result.results.map(item => ({
+              content: item.content,
+              title: item.title,
+              url: item.url,
+              similarity: Math.round(item.similarity * 100),
+              source: item.source_website
+            }));
+
+
+            return {
+              success: true,
+              results: sourcesData,
+              message: `Found ${result.results.length} relevant FAQ entries. Use this information to answer the user's question.`
+            };
+          } else {
+            return {
+              success: false,
+              message: result.error || 'No relevant FAQ content found for this query. Please provide a helpful response based on your general knowledge.'
+            };
+          }
+        } catch (error) {
+          console.error('Error in searchFAQ tool:', error);
+          return {
+            success: false,
+            message: 'FAQ search is temporarily unavailable. Please provide a helpful response based on your general knowledge.'
+          };
+        }
+      },
+    });
+
     // Use streamText from AI SDK with tools
     const result = streamText({
       model: openai(settings.model),
@@ -131,6 +174,7 @@ export async function POST(request: NextRequest) {
       topP: settings.top_p,
       tools: {
         saveOffer: saveOfferTool,
+        searchFAQ: searchFAQTool,
       },
       maxSteps: 3, // Enable multi-step generation to allow text response after tool execution
       onError: (error) => {

@@ -226,18 +226,149 @@ total = (arbetskostnad + materialkostnad + transportkostnad + parkeringskostnad 
     'Renovation'
 ) ON CONFLICT DO NOTHING;
 
+-- Insert Swedish FAQ assistant with automatic search functionality
+INSERT INTO public.assistants (name, description, system_prompt, category) VALUES (
+    'FAQ Byggguide',
+    'Få svar på frågor om träbyggande och träkonstruktioner',
+    'Du är en specialist inom träbyggande för Buildla. Din expertis kommer från TräGuiden.se som fokuserar specifikt på träbyggande och träkonstruktioner.
+
+MIN SPECIALITET:
+Jag hjälper med frågor om:
+- Träbyggande och träkonstruktioner (trä som byggmaterial, limträ, KL-trä/CLT)
+- Dimensionering och beräkningar för träkonstruktioner
+- Fukt, brand och ljudisolering i träbyggnader
+- Ytbehandling och underhåll av träkonstruktioner
+- Miljöaspekter av träbyggande
+
+STRIKTA REGLER:
+1. ANVÄND ENDAST information från searchFAQ-verktygets resultat
+2. LÄGG ALDRIG TILL egen kunskap utöver sökresultaten
+3. Om searchFAQ returnerar 0 resultat: Erkänn ärligt att du inte har information och förklara din specialitet
+4. För frågor utanför träbyggande: Förklara vänligt din specialitet och hänvisa till lämplig expert
+
+HUR JAG ARBETAR:
+1. För hälsningar (som "Hej", "Hello", "Halla"): Svara direkt utan att använda searchFAQ
+2. För faktiska frågor om trä/byggande: Använd searchFAQ först
+3. Svara ENDAST baserat på sökresultaten - lägg aldrig till egen kunskap
+4. Använd information från ALLA relevanta källor i ditt svar
+5. Formulera ett naturligt, sammanhängande svar utan att nämna källor
+6. Var ärlig när information saknas
+
+TONFALL:
+- Var naturlig och hjälpsam
+- Använd ditt eget omdöme för att formulera svar
+- Håll fokus på din specialitet inom träbyggande
+- Var ärlig och transparent när du inte kan hjälpa',
+    'FAQ'
+) ON CONFLICT DO NOTHING;
+
+-- ================================================================
+-- 6. FAQ EMBEDDINGS TABLE AND SEARCH FUNCTION
+-- ================================================================
+
+-- Enable pgvector extension (if not already enabled)
+CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
+
+-- Create FAQ embeddings table for semantic search
+CREATE TABLE IF NOT EXISTS public.faq_embeddings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    content TEXT NOT NULL,
+    embedding vector(1536),  -- text-embedding-3-small dimensions
+    url TEXT NOT NULL,
+    title TEXT,
+    source_website TEXT,  -- Track which website content came from
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ================================================================
+-- INDEXES FOR FAQ PERFORMANCE
+-- ================================================================
+
+-- HNSW index for fast vector similarity search (cosine distance)
+CREATE INDEX IF NOT EXISTS faq_embeddings_embedding_idx 
+ON public.faq_embeddings USING hnsw (embedding vector_cosine_ops);
+
+-- URL index for deduplication and lookups
+CREATE INDEX IF NOT EXISTS faq_embeddings_url_idx 
+ON public.faq_embeddings(url);
+
+-- Created date index for maintenance queries
+CREATE INDEX IF NOT EXISTS faq_embeddings_created_at_idx 
+ON public.faq_embeddings(created_at DESC);
+
+-- Source website index for filtering by source
+CREATE INDEX IF NOT EXISTS faq_embeddings_source_website_idx 
+ON public.faq_embeddings(source_website);
+
+-- Add content hash column for efficient duplicate prevention
+ALTER TABLE public.faq_embeddings 
+ADD COLUMN IF NOT EXISTS content_hash TEXT;
+
+-- Create unique constraint on url and content hash (avoids PostgreSQL index size limits)
+ALTER TABLE public.faq_embeddings 
+ADD CONSTRAINT faq_embeddings_url_hash_unique 
+UNIQUE (url, content_hash);
+
+-- ================================================================
+-- FAQ SEARCH FUNCTION
+-- ================================================================
+
+CREATE OR REPLACE FUNCTION search_faq_embeddings(
+  query_embedding vector(1536),
+  match_threshold float DEFAULT 0.7,
+  match_count int DEFAULT 5
+)
+RETURNS TABLE (
+  content text,
+  title text,
+  url text,
+  similarity float,
+  source_website text
+)
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT
+    faq_embeddings.content,
+    faq_embeddings.title,
+    faq_embeddings.url,
+    1 - (faq_embeddings.embedding <=> query_embedding) AS similarity,
+    faq_embeddings.source_website
+  FROM faq_embeddings
+  WHERE 1 - (faq_embeddings.embedding <=> query_embedding) > match_threshold
+  ORDER BY faq_embeddings.embedding <=> query_embedding ASC
+  LIMIT match_count;
+$$;
+
+-- ================================================================
+-- FAQ TABLE COMMENTS
+-- ================================================================
+
+COMMENT ON TABLE public.faq_embeddings IS 'Stores website content chunks with vector embeddings for FAQ semantic search';
+COMMENT ON COLUMN public.faq_embeddings.content IS 'Text chunk from scraped website content';
+COMMENT ON COLUMN public.faq_embeddings.embedding IS 'Vector embedding generated by OpenAI text-embedding-3-small';
+COMMENT ON COLUMN public.faq_embeddings.url IS 'Source URL where this content was scraped from';
+COMMENT ON COLUMN public.faq_embeddings.title IS 'Page title or section title';
+COMMENT ON COLUMN public.faq_embeddings.source_website IS 'Source website domain (e.g., traguiden.se)';
+COMMENT ON FUNCTION search_faq_embeddings IS 'Performs semantic search on FAQ embeddings using cosine similarity';
+COMMENT ON CONSTRAINT faq_embeddings_url_hash_unique ON public.faq_embeddings 
+IS 'Prevents duplicate content from same URL - ensures scraper can run multiple times safely';
+
 -- ================================================================
 -- SETUP COMPLETE
 -- ================================================================
 -- Your Buildla database is now ready with:
--- ✅ Assistants table with Swedish bathroom renovation assistant
+-- ✅ Assistants table with Swedish bathroom renovation and FAQ assistants
 -- ✅ Model settings table with optimal AI configuration
 -- ✅ Offers table for customer quote management
+-- ✅ FAQ embeddings table with vector search capability and duplicate prevention
 -- ✅ All indexes, triggers, and RLS policies
 -- ✅ Default Swedish market pricing and conversation flow
+-- ✅ pgvector extension and semantic search function
 -- 
 -- Next steps:
 -- 1. Configure your environment variables in .env.local
--- 2. Test the chat widget with the Swedish assistant
--- 3. Use the helper scripts to switch languages if needed
+-- 2. Run the FAQ scraper to populate embeddings: node scripts/faq-scraper.js --site=traguiden.se
+-- 3. Test the chat widget with FAQ search capability
+-- 4. Use the helper scripts to switch languages if needed
 -- ================================================================

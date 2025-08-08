@@ -6,7 +6,10 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "faq:traguiden": "node scripts/faq-scraper.js --site=traguiden.se",
+    "faq:traguiden:dry": "node scripts/faq-scraper.js --site=traguiden.se --dry-run",
+    "faq:traguiden:limit10": "node scripts/faq-scraper.js --site=traguiden.se --limit=10"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.3.22",
@@ -21,11 +24,14 @@
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.50.0",
     "ai": "^4.3.16",
+    "cheerio": "^1.1.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^17.0.0",
     "lucide-react": "^0.516.0",
     "next": "15.3.3",
     "openai": "^5.5.1",
+    "playwright": "^1.53.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "sonner": "^2.0.5",
