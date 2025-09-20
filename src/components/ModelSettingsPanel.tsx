@@ -3,13 +3,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Settings, RotateCcw, Loader2 } from 'lucide-react';
 import { ModelSettings, UpdateModelSettings } from '@/lib/supabase/types';
-import { MODEL_OPTIONS, ModelType } from '@/types/model-settings';
+import { MODEL_OPTIONS, ModelType, VERBOSITY_OPTIONS, REASONING_EFFORT_OPTIONS, VerbosityLevel, ReasoningEffortLevel } from '@/types/model-settings';
 import { getModelSettings, updateModelSettings } from '@/lib/actions/model-settings';
 import { showSuccess, showError } from '@/lib/toast';
 
@@ -45,10 +44,10 @@ export default function ModelSettingsPanel({
       // Use default settings
       const defaultWithId = {
         id: 'default',
-        model: 'gpt-4.1-nano' as ModelType,
-        temperature: 0.20,
+        model: 'gpt-5-nano' as ModelType,
         max_tokens: 2048,
-        top_p: 1.00,
+        verbosity: 'low' as VerbosityLevel,
+        reasoning_effort: 'low' as ReasoningEffortLevel,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -100,10 +99,10 @@ export default function ModelSettingsPanel({
     try {
       setIsSaving(true);
       const defaultSettings: UpdateModelSettings = {
-        model: 'gpt-4.1-nano' as ModelType,
-        temperature: 0.20,
+        model: 'gpt-5-nano' as ModelType,
         max_tokens: 2048,
-        top_p: 1.00
+        verbosity: 'low' as VerbosityLevel,
+        reasoning_effort: 'low' as ReasoningEffortLevel
       };
       const updatedSettings = await updateModelSettings(defaultSettings);
       setSettings(updatedSettings);
@@ -169,22 +168,59 @@ export default function ModelSettingsPanel({
             </Select>
           </div>
 
-          {/* Temperature */}
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <Label className="text-sm font-medium">Temperature</Label>
-              <span className="text-sm text-gray-500">{settings.temperature}</span>
-            </div>
-            <Slider
-              value={[settings.temperature]}
-              onValueChange={([value]) => handleSettingChange('temperature', value)}
-              max={2}
-              min={0}
-              step={0.1}
-              className="w-full cursor-pointer"
-            />
+          {/* Verbosity */}
+          <div className="space-y-2">
+            <Label htmlFor="verbosity" className="text-sm font-medium">
+              Verbosity
+            </Label>
+            <Select
+              value={settings.verbosity}
+              onValueChange={(value) => handleSettingChange('verbosity', value)}
+            >
+              <SelectTrigger className="w-full cursor-pointer">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {VERBOSITY_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value} className="cursor-pointer">
+                    <div className="w-full text-left">
+                      <div className="font-medium">{option.label}</div>
+                      <div className="text-xs text-gray-500">{option.description}</div>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <p className="text-xs text-gray-500">
-              Controls randomness. Lower = more focused, Higher = more creative
+              Controls response length and detail level
+            </p>
+          </div>
+
+          {/* Reasoning Effort */}
+          <div className="space-y-2">
+            <Label htmlFor="reasoning_effort" className="text-sm font-medium">
+              Reasoning Effort
+            </Label>
+            <Select
+              value={settings.reasoning_effort}
+              onValueChange={(value) => handleSettingChange('reasoning_effort', value)}
+            >
+              <SelectTrigger className="w-full cursor-pointer">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {REASONING_EFFORT_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value} className="cursor-pointer">
+                    <div className="w-full text-left">
+                      <div className="font-medium">{option.label}</div>
+                      <div className="text-xs text-gray-500">{option.description}</div>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500">
+              Controls reasoning depth and response time
             </p>
           </div>
 
@@ -204,25 +240,6 @@ export default function ModelSettingsPanel({
             />
             <p className="text-xs text-gray-500">
               Maximum response length (100-32,768)
-            </p>
-          </div>
-
-          {/* Top P */}
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <Label className="text-sm font-medium">Top P</Label>
-              <span className="text-sm text-gray-500">{settings.top_p}</span>
-            </div>
-            <Slider
-              value={[settings.top_p]}
-              onValueChange={([value]) => handleSettingChange('top_p', value)}
-              max={1}
-              min={0}
-              step={0.05}
-              className="w-full cursor-pointer"
-            />
-            <p className="text-xs text-gray-500">
-              Alternative to temperature. Controls diversity of responses
             </p>
           </div>
 

@@ -1,4 +1,4 @@
-import { ModelType } from '@/types/model-settings';
+import { ModelType, VerbosityLevel, ReasoningEffortLevel } from '@/types/model-settings';
 
 export type Json =
   | string
@@ -45,27 +45,27 @@ export interface Database {
         Row: {
           id: string
           model: ModelType
-          temperature: number
           max_tokens: number
-          top_p: number
+          verbosity: VerbosityLevel
+          reasoning_effort: ReasoningEffortLevel
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
           model?: ModelType
-          temperature?: number
           max_tokens?: number
-          top_p?: number
+          verbosity?: VerbosityLevel
+          reasoning_effort?: ReasoningEffortLevel
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           model?: ModelType
-          temperature?: number
           max_tokens?: number
-          top_p?: number
+          verbosity?: VerbosityLevel
+          reasoning_effort?: ReasoningEffortLevel
           created_at?: string
           updated_at?: string
         }

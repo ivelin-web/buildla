@@ -12,8 +12,8 @@
     "faq:traguiden:limit10": "node scripts/faq-scraper.js --site=traguiden.se --limit=10"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^1.3.22",
-    "@ai-sdk/react": "^1.2.12",
+    "@ai-sdk/openai": "^2.0.32",
+    "@ai-sdk/react": "^2.0.47",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-label": "^2.1.7",
@@ -23,20 +23,20 @@
     "@radix-ui/react-tabs": "^1.1.12",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.50.0",
-    "ai": "^4.3.16",
+    "ai": "^5.0.47",
     "cheerio": "^1.1.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.0.0",
     "lucide-react": "^0.516.0",
     "next": "15.3.3",
-    "openai": "^5.5.1",
+    "openai": "^5.22.0",
     "playwright": "^1.53.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "sonner": "^2.0.5",
     "tailwind-merge": "^3.3.1",
-    "zod": "^3.25.67"
+    "zod": "^4.1.9"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
