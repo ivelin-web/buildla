@@ -70,9 +70,19 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
 
     if (!input.trim()) return;
 
+    // Store the input text before clearing
+    const messageText = input;
+
+    // Clear input immediately for better UX
+    setInput('');
+    setSelectedFiles(undefined);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
     // Send message using v5 API
     await sendMessage(
-      { text: input },
+      { text: messageText },
       {
         body: {
           assistantId: selectedAssistant,
@@ -80,12 +90,6 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
         }
       }
     );
-
-    setInput('');
-    setSelectedFiles(undefined);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
   };
 
   const { messages, sendMessage, status, error, setMessages } = useChat({
@@ -274,7 +278,7 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
         ) : (
           <>
             {messages.map((message, index) => {
-              // Get text content from parts
+              // Get text content from parts for empty message check
               const textPart = message.parts?.find(part => part.type === 'text');
               const textContent = textPart?.text || '';
 
@@ -303,7 +307,8 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
                     }`}
                   >
                     {/* Show file attachments if present in parts */}
-                    {message.role === 'user' && message.parts && (
+                    {message.role === 'user' && message.parts &&
+                     message.parts.filter((part: any) => part.type === 'file').length > 0 && (
                       <div className="mb-2">
                         {message.parts
                           .filter((part: any) => part.type === 'file')
@@ -318,18 +323,21 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
                       </div>
                     )}
 
-                    {/* Display content and auto-sources */}
-                    {message.role === 'assistant' ? (
-                      <>
-                        {textContent}
-                        {getSourcesForMessage(message.id) && (
-                          <SourceList
-                            sources={getSourcesForMessage(message.id)!}
-                          />
-                        )}
-                      </>
-                    ) : (
-                      textContent
+                    {/* Display content properly iterating through parts */}
+                    {message.parts?.map((part, i) => {
+                      switch (part.type) {
+                        case 'text':
+                          return <span key={`${message.id}-${i}`}>{part.text}</span>;
+                        default:
+                          return null;
+                      }
+                    })}
+
+                    {/* Show sources for assistant messages */}
+                    {message.role === 'assistant' && getSourcesForMessage(message.id) && (
+                      <SourceList
+                        sources={getSourcesForMessage(message.id)!}
+                      />
                     )}
                   </div>
                 </div>
