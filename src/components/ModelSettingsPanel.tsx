@@ -177,12 +177,12 @@ export default function ModelSettingsPanel({
               value={settings.verbosity}
               onValueChange={(value) => handleSettingChange('verbosity', value)}
             >
-              <SelectTrigger className="w-full cursor-pointer">
+              <SelectTrigger className="w-full cursor-pointer px-3 py-6">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {VERBOSITY_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value} className="cursor-pointer">
+                  <SelectItem key={option.value} value={option.value} className="px-3 py-2 cursor-pointer">
                     <div className="w-full text-left">
                       <div className="font-medium">{option.label}</div>
                       <div className="text-xs text-gray-500">{option.description}</div>
@@ -205,12 +205,12 @@ export default function ModelSettingsPanel({
               value={settings.reasoning_effort}
               onValueChange={(value) => handleSettingChange('reasoning_effort', value)}
             >
-              <SelectTrigger className="w-full cursor-pointer">
+              <SelectTrigger className="w-full cursor-pointer px-3 py-6">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {REASONING_EFFORT_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value} className="cursor-pointer">
+                  <SelectItem key={option.value} value={option.value} className="px-3 py-2 cursor-pointer">
                     <div className="w-full text-left">
                       <div className="font-medium">{option.label}</div>
                       <div className="text-xs text-gray-500">{option.description}</div>
