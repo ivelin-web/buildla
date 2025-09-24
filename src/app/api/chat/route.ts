@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { openai } from '@ai-sdk/openai';
-import { streamText, tool } from 'ai';
-import { z } from 'zod';
+import { streamText, tool, stepCountIs, convertToModelMessages } from 'ai';
+import { z } from 'zod/v3';
 import { getAssistantById } from '@/lib/actions/assistants';
 import { getModelSettings } from '@/lib/actions/model-settings';
 import { createOffer } from '@/lib/actions/offers';
@@ -56,10 +56,10 @@ export async function POST(request: NextRequest) {
         console.error('Failed to get model settings, using defaults:', error);
         settings = {
           id: 'default',
-          model: 'gpt-4.1-nano' as const,
-          temperature: 0.20,
+          model: 'gpt-5-nano' as const,
           max_tokens: 2048,
-          top_p: 1.00,
+          verbosity: 'low' as const,
+          reasoning_effort: 'low' as const,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     // Define the offer tool
     const saveOfferTool = tool({
       description: 'Save bathroom renovation offer to database. ONLY call this AFTER you have already shown the complete price breakdown to the user AND collected their contact details.',
-      parameters: z.object({
+      inputSchema: z.object({
         customerInfo: z.object({
           name: z.string().min(1),
           email: z.string().min(1),
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
     // Define the FAQ search tool
     const searchFAQTool = tool({
       description: 'Search FAQ database for wood construction information from TräGuiden.se. CRITICAL: Use this tool for questions about wood construction, timber materials, or wood building techniques. IMPORTANT: You MUST ONLY use information from the search results - NEVER add your own knowledge or make assumptions beyond what the tool returns.',
-      parameters: z.object({
+      inputSchema: z.object({
         query: z.string().min(1).describe('The user question or search query to find relevant wood construction FAQ content'),
       }),
       execute: async ({ query }) => {
@@ -164,25 +164,37 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Convert UIMessages to ModelMessages for streamText
+    const modelMessages = convertToModelMessages(messages);
+
     // Use streamText from AI SDK with tools
     const result = streamText({
       model: openai(settings.model),
       system: systemPrompt,
-      messages,
-      maxTokens: settings.max_tokens,
-      temperature: settings.temperature,
-      topP: settings.top_p,
+      messages: modelMessages,
+      maxOutputTokens: settings.max_tokens,
+
+      // GPT-5 specific parameters
+      providerOptions: {
+        openai: {
+          textVerbosity: settings.verbosity,
+          reasoningEffort: settings.reasoning_effort,
+        },
+      },
+
       tools: {
         saveOffer: saveOfferTool,
         searchFAQ: searchFAQTool,
       },
-      maxSteps: 3, // Enable multi-step generation to allow text response after tool execution
+
+      stopWhen: stepCountIs(3),
+
       onError: (error) => {
         console.error('streamText error:', error);
       }
     });
 
-    return result.toDataStreamResponse();
+    return result.toUIMessageStreamResponse();
 
   } catch (error) {
     console.error('AI API Error:', error);

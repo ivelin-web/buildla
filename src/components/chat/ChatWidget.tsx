@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -23,6 +24,7 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
   const [selectedAssistant, setSelectedAssistant] = useState<string>('');
   const [isSessionComplete, setIsSessionComplete] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<FileList | undefined>(undefined);
+  const [input, setInput] = useState('');
   const [messageSources, setMessageSources] = useState<Map<string, {
     content: string;
     title: string | null;
@@ -63,44 +65,55 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
     }
   };
 
-  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    handleSubmit(e, {
-      experimental_attachments: selectedFiles,
-    });
-    
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!input.trim()) return;
+
+    // Store the input text before clearing
+    const messageText = input;
+
+    // Clear input immediately for better UX
+    setInput('');
     setSelectedFiles(undefined);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+
+    // Send message using v5 API
+    await sendMessage(
+      { text: messageText },
+      {
+        body: {
+          assistantId: selectedAssistant,
+          modelSettings: modelSettings
+        }
+      }
+    );
   };
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages, append } = useChat({
-    api: '/api/chat',
-    body: {
-      assistantId: selectedAssistant,
-      modelSettings: modelSettings
-    },
-    onFinish: (message) => {
+  const { messages, sendMessage, status, error, setMessages } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat'
+    }),
+    onFinish: ({ message }) => {
       // Check for FAQ search tool results to extract sources
       if (message.parts) {
         const faqToolResults = message.parts.filter(
-          (part) =>
-            part.type === 'tool-invocation' &&
-            'toolInvocation' in part &&
-            part.toolInvocation?.state === 'result' &&
-            part.toolInvocation?.toolName === 'searchFAQ'
+          (part: any) =>
+            part.type === 'tool-searchFAQ' &&
+            part.state === 'output-available'
         );
 
         for (const part of faqToolResults) {
           try {
-            if ('toolInvocation' in part && part.toolInvocation?.state === 'result') {
-              const result = part.toolInvocation.result;
-              const data = typeof result === 'string' ? JSON.parse(result) : result;
-              
-              if (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results)) {
-                setMessageSources(prev => new Map(prev).set(message.id, data.results));
-                break;
-              }
+            const toolPart = part as any; // Type cast for tool parts
+            const result = toolPart.output;
+            const data = typeof result === 'string' ? JSON.parse(result) : result;
+
+            if (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results)) {
+              setMessageSources(prev => new Map(prev).set(message.id, data.results));
+              break;
             }
           } catch (error) {
             console.error('Failed to parse FAQ tool result:', error);
@@ -109,23 +122,20 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
 
         // Check for successful saveOffer tool execution via message.parts
         const offerToolResults = message.parts.filter(
-          (part) =>
-            part.type === 'tool-invocation' &&
-            'toolInvocation' in part &&
-            part.toolInvocation?.state === 'result' &&
-            part.toolInvocation?.toolName === 'saveOffer'
+          (part: any) =>
+            part.type === 'tool-saveOffer' &&
+            part.state === 'output-available'
         );
 
         for (const part of offerToolResults) {
           try {
-            if ('toolInvocation' in part && part.toolInvocation?.state === 'result') {
-              const result = part.toolInvocation.result;
-              const data = typeof result === 'string' ? JSON.parse(result) : result;
-              
-              if (data && typeof data === 'object' && 'success' in data && data.success) {
-                setIsSessionComplete(true);
-                break;
-              }
+            const toolPart = part as any; // Type cast for tool parts
+            const result = toolPart.output;
+            const data = typeof result === 'string' ? JSON.parse(result) : result;
+
+            if (data && typeof data === 'object' && 'success' in data && data.success) {
+              setIsSessionComplete(true);
+              break;
             }
           } catch (error) {
             // Ignore JSON parsing errors
@@ -139,6 +149,8 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
     }
   });
 
+  const isLoading = status === 'streaming';
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ 
       behavior: 'smooth', 
@@ -151,14 +163,19 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
     setMessages([]);
     setIsSessionComplete(false);
     setMessageSources(new Map());
-    
-    // Auto-start conversation using append
+
+    // Auto-start conversation using sendMessage
     if (selectedAssistant) {
       try {
-        await append({
-          role: 'user',
-          content: 'Hej'
-        });
+        await sendMessage(
+          { text: 'Hej' },
+          {
+            body: {
+              assistantId: selectedAssistant,
+              modelSettings: modelSettings
+            }
+          }
+        );
       } catch (error) {
         console.error('Error restarting conversation:', error);
       }
@@ -193,15 +210,20 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
   const handleAssistantChange = async (assistantId: string) => {
     setSelectedAssistant(assistantId);
     setIsSessionComplete(false);
-    setMessages([]); // Clear previous messages
+    setMessages([]);
     setMessageSources(new Map());
-    
-    // Auto-start conversation using append - this automatically triggers AI response
+
+    // Auto-start conversation using sendMessage - this automatically triggers AI response
     try {
-      await append({
-        role: 'user',
-        content: 'Hej'
-      });
+      await sendMessage(
+        { text: 'Hej' },
+        {
+          body: {
+            assistantId: assistantId,
+            modelSettings: modelSettings
+          }
+        }
+      );
     } catch (error) {
       console.error('Error starting conversation:', error);
     }
@@ -211,7 +233,8 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
   const shouldShowSkeleton = useMemo(() => {
     if (!isLoading) return false;
     const lastMessage = messages[messages.length - 1];
-    const isStreamingAssistantMessage = lastMessage?.role === 'assistant' && lastMessage.content.trim();
+    const textPart = lastMessage?.parts?.find(part => part.type === 'text');
+    const isStreamingAssistantMessage = lastMessage?.role === 'assistant' && textPart?.text?.trim();
     return !isStreamingAssistantMessage;
   }, [isLoading, messages]);
 
@@ -224,7 +247,6 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
           <p className="text-blue-100">Testing your AI assistants</p>
         </div>
       )}
-
       {/* Assistant Selector */}
       <div className="p-5 border-b border-gray-200">
         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -243,7 +265,6 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
           </SelectContent>
         </Select>
       </div>
-
       {/* Messages */}
       <div className={`${isEmbed ? 'flex-1' : 'h-96'} overflow-y-auto p-5 bg-gray-50`}>
         {!selectedAssistant ? (
@@ -257,16 +278,20 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
         ) : (
           <>
             {messages.map((message, index) => {
+              // Get text content from parts for empty message check
+              const textPart = message.parts?.find(part => part.type === 'text');
+              const textContent = textPart?.text || '';
+
               // Hide empty assistant messages to prevent empty balloons during tool execution
-              if (message.role === 'assistant' && !message.content.trim()) {
+              if (message.role === 'assistant' && !textContent.trim()) {
                 return null;
               }
-              
+
               // Hide the first user message (automatic greeting)
               if (message.role === 'user' && index === 0) {
                 return null;
               }
-              
+
               return (
                 <div
                   key={message.id}
@@ -281,32 +306,38 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
                         : 'bg-white text-gray-800 border border-gray-200 rounded-bl-md'
                     }`}
                   >
-                    {/* Show PDF attachment if present */}
-                    {message.role === 'user' && message.experimental_attachments && message.experimental_attachments.length > 0 && (
-                      <div className="mb-2 pb-2 border-b border-blue-400 border-opacity-30">
-                        {message.experimental_attachments.map((attachment, index) => (
-                          <div key={index} className="flex items-center gap-2 text-xs bg-blue-400 bg-opacity-20 rounded-lg px-2 py-1 mb-1">
+                    {/* Show file attachments if present in parts */}
+                    {message.role === 'user' && message.parts &&
+                     message.parts.filter((part: any) => part.type === 'file').length > 0 && (
+                      <div className="mb-2">
+                        {message.parts
+                          .filter((part: any) => part.type === 'file')
+                          .map((filePart: any, index: number) => (
+                          <div key={index} className="flex items-center gap-2 text-xs bg-blue-400 bg-opacity-20 rounded-lg px-2 py-1 mb-1 border-b border-blue-400 border-opacity-30">
                             <Paperclip className="w-3 h-3" />
                             <span className="truncate font-medium">
-                              {attachment.name || `file-${index + 1}.pdf`}
+                              {filePart.name || `file-${index + 1}`}
                             </span>
                           </div>
                         ))}
                       </div>
                     )}
-                    
-                    {/* Display content and auto-sources */}
-                    {message.role === 'assistant' ? (
-                      <>
-                        {message.content}
-                        {getSourcesForMessage(message.id) && (
-                          <SourceList 
-                            sources={getSourcesForMessage(message.id)!} 
-                          />
-                        )}
-                      </>
-                    ) : (
-                      message.content
+
+                    {/* Display content properly iterating through parts */}
+                    {message.parts?.map((part, i) => {
+                      switch (part.type) {
+                        case 'text':
+                          return <span key={`${message.id}-${i}`}>{part.text}</span>;
+                        default:
+                          return null;
+                      }
+                    })}
+
+                    {/* Show sources for assistant messages */}
+                    {message.role === 'assistant' && getSourcesForMessage(message.id) && (
+                      <SourceList
+                        sources={getSourcesForMessage(message.id)!}
+                      />
                     )}
                   </div>
                 </div>
@@ -322,14 +353,12 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
           </>
         )}
       </div>
-
       {/* Error Message */}
       {error && (
         <div className="mx-5 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
           {error.message}
         </div>
       )}
-
       {/* File Input (Hidden) */}
       <input
         type="file"
@@ -338,7 +367,6 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
         ref={fileInputRef}
         className="hidden"
       />
-
       {/* Input */}
       <div className="p-5 bg-white border-t border-gray-200">
         {isSessionComplete ? (
@@ -377,7 +405,7 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
             <Input
               type="text"
               value={input}
-              onChange={handleInputChange}
+              onChange={(e) => setInput(e.target.value)}
               placeholder={
                 selectedAssistant
                   ? 'Skriv ditt meddelande...'

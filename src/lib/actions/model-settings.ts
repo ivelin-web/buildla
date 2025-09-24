@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { ModelSettings, InsertModelSettings, UpdateModelSettings } from '@/lib/supabase/types';
-import { ModelType } from '@/types/model-settings';
+import { ModelType, VerbosityLevel, ReasoningEffortLevel } from '@/types/model-settings';
 
 export async function getModelSettings(): Promise<ModelSettings> {
   const supabase = await createClient();
@@ -15,10 +15,10 @@ export async function getModelSettings(): Promise<ModelSettings> {
   if (error || !data) {
     // If no settings exist, create default settings
     const defaultSettings: InsertModelSettings = {
-      model: 'gpt-4.1-nano' as ModelType,
-      temperature: 0.20,
+      model: 'gpt-5-nano' as ModelType,
       max_tokens: 2048,
-      top_p: 1.00
+      verbosity: 'low' as VerbosityLevel,
+      reasoning_effort: 'low' as ReasoningEffortLevel
     };
 
     const { data: newSettings, error: createError } = await supabase

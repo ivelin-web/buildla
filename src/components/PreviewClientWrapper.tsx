@@ -33,7 +33,7 @@ export default function PreviewClientWrapper({ initialSettings }: PreviewClientW
             You can test all functionality here before embedding it on your website.
             {modelSettings && (
               <span className="block mt-2 font-medium">
-                Current: {modelSettings.model} | Temp: {modelSettings.temperature} | Tokens: {modelSettings.max_tokens}
+                Current: {modelSettings.model} | Verbosity: {modelSettings.verbosity} | Reasoning: {modelSettings.reasoning_effort} | Tokens: {modelSettings.max_tokens}
               </span>
             )}
           </p>
