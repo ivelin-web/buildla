@@ -25,7 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { createAssistant, updateAssistant, deleteAssistant } from '@/lib/actions/assistants';
+import { createAssistant, updateAssistant, deleteAssistant, toggleAssistantPublic } from '@/lib/actions/assistants';
 import { showSuccess, showError } from '@/lib/toast';
 import { type Assistant } from '@/types';
 
@@ -77,7 +77,7 @@ export default function AssistantsManager({ assistants }: AssistantsManagerProps
   const handleUpdateAssistant = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!editingAssistant) return;
-    
+
     setIsSubmitting(true);
     try {
       const formData = new FormData(e.currentTarget);
@@ -90,6 +90,19 @@ export default function AssistantsManager({ assistants }: AssistantsManagerProps
       showError('Failed to update assistant', 'Please try again.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleTogglePublic = async (assistantId: string, isPublic: boolean) => {
+    try {
+      await toggleAssistantPublic(assistantId, !isPublic);
+      showSuccess(
+        !isPublic ? 'Assistant made public!' : 'Assistant made private!',
+        !isPublic ? 'It will now appear in the widget.' : 'It will no longer appear in the widget.'
+      );
+    } catch (error) {
+      console.error('Error toggling assistant public status:', error);
+      showError('Failed to update assistant', 'Please try again.');
     }
   };
 
@@ -109,7 +122,16 @@ export default function AssistantsManager({ assistants }: AssistantsManagerProps
               className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
             >
               <div>
-                <h3 className="font-semibold text-gray-900">{assistant.name}</h3>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-semibold text-gray-900">{assistant.name}</h3>
+                  <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                    assistant.is_public
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {assistant.is_public ? 'Public' : 'Private'}
+                  </span>
+                </div>
                 <p className="text-gray-600 text-sm">{assistant.description}</p>
                 {assistant.category && (
                   <span className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full mt-1">
@@ -121,9 +143,21 @@ export default function AssistantsManager({ assistants }: AssistantsManagerProps
                 </p>
               </div>
               <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`cursor-pointer ${
+                    assistant.is_public
+                      ? 'text-orange-600 border-orange-200 hover:bg-orange-50'
+                      : 'text-green-600 border-green-200 hover:bg-green-50'
+                  }`}
+                  onClick={() => handleTogglePublic(assistant.id, assistant.is_public || false)}
+                >
+                  {assistant.is_public ? 'Make Private' : 'Make Public'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="cursor-pointer"
                   onClick={() => handleEditAssistant(assistant)}
                 >
@@ -131,9 +165,9 @@ export default function AssistantsManager({ assistants }: AssistantsManagerProps
                 </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="text-red-600 border-red-200 cursor-pointer"
                     >
                       Delete

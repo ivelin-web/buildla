@@ -18,6 +18,7 @@ export interface Database {
           description: string
           system_prompt: string
           category: string | null
+          is_public: boolean | null
           created_at: string
           updated_at: string | null
         }
@@ -27,6 +28,7 @@ export interface Database {
           description: string
           system_prompt: string
           category?: string | null
+          is_public?: boolean | null
           created_at?: string
           updated_at?: string | null
         }
@@ -36,6 +38,7 @@ export interface Database {
           description?: string
           system_prompt?: string
           category?: string | null
+          is_public?: boolean | null
           created_at?: string
           updated_at?: string | null
         }

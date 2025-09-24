@@ -6,7 +6,7 @@ import { type InsertAssistant, type UpdateAssistant } from '@/lib/supabase/types
 
 export async function getAssistants() {
   const supabase = await createClient()
-  
+
   const { data: assistants, error } = await supabase
     .from('assistants')
     .select('*')
@@ -15,6 +15,23 @@ export async function getAssistants() {
   if (error) {
     console.error('Error fetching assistants:', error)
     throw new Error('Failed to fetch assistants')
+  }
+
+  return assistants || []
+}
+
+export async function getPublicAssistants() {
+  const supabase = await createClient()
+
+  const { data: assistants, error } = await supabase
+    .from('assistants')
+    .select('*')
+    .eq('is_public', true)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching public assistants:', error)
+    throw new Error('Failed to fetch public assistants')
   }
 
   return assistants || []
@@ -79,6 +96,25 @@ export async function updateAssistant(id: string, formData: FormData) {
   if (error) {
     console.error('Error updating assistant:', error)
     throw new Error('Failed to update assistant')
+  }
+
+  revalidatePath('/dashboard/assistants')
+}
+
+export async function toggleAssistantPublic(id: string, isPublic: boolean) {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('assistants')
+    .update({
+      is_public: isPublic,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id)
+
+  if (error) {
+    console.error('Error toggling assistant public status:', error)
+    throw new Error('Failed to update assistant public status')
   }
 
   revalidatePath('/dashboard/assistants')

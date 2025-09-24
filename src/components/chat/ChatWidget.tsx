@@ -197,7 +197,9 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
 
   const loadAssistants = async () => {
     try {
-      const response = await fetch('/api/assistants');
+      // For widget (embed) mode, only load public assistants
+      const url = isEmbed ? '/api/assistants?widget=true' : '/api/assistants';
+      const response = await fetch(url);
       const data = await response.json();
       if (data.assistants) {
         setAssistants(data.assistants);
