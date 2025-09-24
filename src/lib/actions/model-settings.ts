@@ -16,7 +16,7 @@ export async function getModelSettings(): Promise<ModelSettings> {
     // If no settings exist, create default settings
     const defaultSettings: InsertModelSettings = {
       model: 'gpt-5-nano' as ModelType,
-      max_tokens: 2048,
+      max_tokens: 3000,
       verbosity: 'low' as VerbosityLevel,
       reasoning_effort: 'low' as ReasoningEffortLevel
     };

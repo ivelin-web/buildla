@@ -45,7 +45,7 @@ export default function ModelSettingsPanel({
       const defaultWithId = {
         id: 'default',
         model: 'gpt-5-nano' as ModelType,
-        max_tokens: 2048,
+        max_tokens: 3000,
         verbosity: 'low' as VerbosityLevel,
         reasoning_effort: 'low' as ReasoningEffortLevel,
         created_at: new Date().toISOString(),
@@ -100,7 +100,7 @@ export default function ModelSettingsPanel({
       setIsSaving(true);
       const defaultSettings: UpdateModelSettings = {
         model: 'gpt-5-nano' as ModelType,
-        max_tokens: 2048,
+        max_tokens: 3000,
         verbosity: 'low' as VerbosityLevel,
         reasoning_effort: 'low' as ReasoningEffortLevel
       };

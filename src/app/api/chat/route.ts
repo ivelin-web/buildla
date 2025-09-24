@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
         settings = {
           id: 'default',
           model: 'gpt-5-nano' as const,
-          max_tokens: 2048,
+          max_tokens: 3000,
           verbosity: 'low' as const,
           reasoning_effort: 'low' as const,
           created_at: new Date().toISOString(),
