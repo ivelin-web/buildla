@@ -149,7 +149,7 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
     }
   });
 
-  const isLoading = status === 'streaming';
+  const isLoading = status === 'streaming' || status === 'submitted';
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ 
