@@ -1,17 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { SkeletonMessage } from '@/components/ui/skeleton-message';
-import { SourceList } from '@/components/ui/source-list';
-import { Assistant } from '@/types';
-import { ModelSettings } from '@/lib/supabase/types';
-import { Paperclip, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { type ModelSettings } from '@/lib/supabase/types';
+
+import { AssistantSelector } from './AssistantSelector';
+import { ChatComposer } from './ChatComposer';
+import { ChatMessageList } from './ChatMessageList';
+import { useChatWidget } from './hooks/use-chat-widget';
 
 interface ChatWidgetProps {
   className?: string;
@@ -20,427 +14,78 @@ interface ChatWidgetProps {
 }
 
 export default function ChatWidget({ className = '', modelSettings, isEmbed = false }: ChatWidgetProps) {
-  const [assistants, setAssistants] = useState<Assistant[]>([]);
-  const [selectedAssistant, setSelectedAssistant] = useState<string>('');
-  const [isSessionComplete, setIsSessionComplete] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<FileList | undefined>(undefined);
-  const [input, setInput] = useState('');
-  const [messageSources, setMessageSources] = useState<Map<string, {
-    content: string;
-    title: string | null;
-    url: string;
-    similarity: number;
-    source: string | null;
-  }[]>>(new Map());
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const {
+    assistants,
+    selectedAssistant,
+    isSessionComplete,
+    selectedFiles,
+    input,
+    messages,
+    error,
+    isLoading,
+    shouldShowSkeleton,
+    messagesEndRef,
+    fileInputRef,
+    getSourcesForMessage,
+    handleAssistantChange,
+    handleFormSubmit,
+    handleFileChange,
+    clearSelectedFiles,
+    resetChat,
+    setInput
+  } = useChatWidget({ modelSettings, isEmbed });
 
-  // File size configuration
-  const MAX_FILE_SIZE_MB = parseInt(process.env.NEXT_PUBLIC_MAX_FILE_SIZE_MB || '10');
-  const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-
-  const validateFileSize = (file: File): boolean => {
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      toast.error(`Filstorleken överskrider ${MAX_FILE_SIZE_MB}MB-gränsen. Välj en mindre fil.`);
-      return false;
-    }
-    return true;
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      if (validateFileSize(file)) {
-        setSelectedFiles(files);
-      } else {
-        // Reset file input if validation fails
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-        setSelectedFiles(undefined);
-      }
-    } else {
-      setSelectedFiles(undefined);
-    }
-  };
-
-  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    if (!input.trim()) return;
-
-    // Store the input text before clearing
-    const messageText = input;
-
-    // Clear input immediately for better UX
-    setInput('');
-    setSelectedFiles(undefined);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-
-    // Send message using v5 API
-    await sendMessage(
-      { text: messageText },
-      {
-        body: {
-          assistantId: selectedAssistant,
-          modelSettings: modelSettings
-        }
-      }
-    );
-  };
-
-  const { messages, sendMessage, status, error, setMessages } = useChat({
-    transport: new DefaultChatTransport({
-      api: '/api/chat'
-    }),
-    onFinish: ({ message }) => {
-      // Check for FAQ search tool results to extract sources
-      if (message.parts) {
-        const faqToolResults = message.parts.filter(
-          (part: any) =>
-            part.type === 'tool-searchFAQ' &&
-            part.state === 'output-available'
-        );
-
-        for (const part of faqToolResults) {
-          try {
-            const toolPart = part as any; // Type cast for tool parts
-            const result = toolPart.output;
-            const data = typeof result === 'string' ? JSON.parse(result) : result;
-
-            if (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results)) {
-              setMessageSources(prev => new Map(prev).set(message.id, data.results));
-              break;
-            }
-          } catch (error) {
-            console.error('Failed to parse FAQ tool result:', error);
-          }
-        }
-
-        // Check for successful saveOffer tool execution via message.parts
-        const offerToolResults = message.parts.filter(
-          (part: any) =>
-            part.type === 'tool-saveOffer' &&
-            part.state === 'output-available'
-        );
-
-        for (const part of offerToolResults) {
-          try {
-            const toolPart = part as any; // Type cast for tool parts
-            const result = toolPart.output;
-            const data = typeof result === 'string' ? JSON.parse(result) : result;
-
-            if (data && typeof data === 'object' && 'success' in data && data.success) {
-              setIsSessionComplete(true);
-              break;
-            }
-          } catch (error) {
-            // Ignore JSON parsing errors
-            console.error('Failed to parse tool result:', error);
-          }
-        }
-      }
-    },
-    onError: (error) => {
-      console.error('Chat error:', error);
-    }
-  });
-
-  const isLoading = status === 'streaming' || status === 'submitted';
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ 
-      behavior: 'smooth', 
-      block: 'nearest', 
-      inline: 'nearest' 
-    });
-  };
-
-  const resetChat = async () => {
-    setMessages([]);
-    setIsSessionComplete(false);
-    setMessageSources(new Map());
-
-    // Auto-start conversation using sendMessage
-    if (selectedAssistant) {
-      try {
-        await sendMessage(
-          { text: 'Hej' },
-          {
-            body: {
-              assistantId: selectedAssistant,
-              modelSettings: modelSettings
-            }
-          }
-        );
-      } catch (error) {
-        console.error('Error restarting conversation:', error);
-      }
-    }
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  useEffect(() => {
-    loadAssistants();
-  }, []);
-
-  const getSourcesForMessage = useCallback((messageId: string) => {
-    const sources = messageSources.get(messageId);
-    return sources && sources.length > 0 ? sources.slice(0, 3) : null;
-  }, [messageSources]);
-
-  const loadAssistants = async () => {
-    try {
-      // For widget (embed) mode, only load public assistants
-      const url = isEmbed ? '/api/assistants?widget=true' : '/api/assistants';
-      const response = await fetch(url);
-      const data = await response.json();
-      if (data.assistants) {
-        setAssistants(data.assistants);
-      }
-    } catch (error) {
-      console.error('Failed to load assistants:', error);
-    }
-  };
-
-  const handleAssistantChange = async (assistantId: string) => {
-    setSelectedAssistant(assistantId);
-    setIsSessionComplete(false);
-    setMessages([]);
-    setMessageSources(new Map());
-
-    // Auto-start conversation using sendMessage - this automatically triggers AI response
-    try {
-      await sendMessage(
-        { text: 'Hej' },
-        {
-          body: {
-            assistantId: assistantId,
-            modelSettings: modelSettings
-          }
-        }
-      );
-    } catch (error) {
-      console.error('Error starting conversation:', error);
-    }
-  };
-
-  // Memoized skeleton visibility logic for better performance
-  const shouldShowSkeleton = useMemo(() => {
-    if (!isLoading) return false;
-    const lastMessage = messages[messages.length - 1];
-    const textPart = lastMessage?.parts?.find(part => part.type === 'text');
-    const isStreamingAssistantMessage = lastMessage?.role === 'assistant' && textPart?.text?.trim();
-    return !isStreamingAssistantMessage;
-  }, [isLoading, messages]);
+  const hasSelectedAssistant = selectedAssistant !== '';
 
   return (
-    <div className={`${isEmbed ? 'w-full flex flex-col h-full' : 'max-w-2xl mx-auto'} bg-white overflow-hidden ${isEmbed ? '' : 'rounded-xl shadow-lg'} ${className}`}>
-      {/* Header */}
+    <div
+      className={`${
+        isEmbed ? 'w-full flex flex-col h-full' : 'max-w-2xl mx-auto'
+      } bg-white overflow-hidden ${isEmbed ? '' : 'rounded-xl shadow-lg'} ${className}`}
+    >
       {!isEmbed && (
         <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-5 text-center">
           <h3 className="text-xl font-semibold mb-2">AI Assistant Demo</h3>
           <p className="text-blue-100">Testing your AI assistants</p>
         </div>
       )}
-      {/* Assistant Selector */}
-      <div className="p-5 border-b border-gray-200">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Välj assistent:
-        </label>
-        <Select value={selectedAssistant} onValueChange={handleAssistantChange}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Välj en assistent..." />
-          </SelectTrigger>
-          <SelectContent>
-            {assistants.map((assistant) => (
-              <SelectItem key={assistant.id} value={assistant.id}>
-                {assistant.name} ({assistant.description})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      {/* Messages */}
-      <div className={`${isEmbed ? 'flex-1' : 'h-96'} overflow-y-auto p-5 bg-gray-50`}>
-        {!selectedAssistant ? (
-          <div className="flex items-center justify-center h-full text-gray-500 italic">
-            Välj en assistent ovan för att komma igång
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-gray-500 italic">
-            Starta en konversation...
-          </div>
-        ) : (
-          <>
-            {messages.map((message, index) => {
-              // Get text content from parts for empty message check
-              const textPart = message.parts?.find(part => part.type === 'text');
-              const textContent = textPart?.text || '';
 
-              // Hide empty assistant messages to prevent empty balloons during tool execution
-              if (message.role === 'assistant' && !textContent.trim()) {
-                return null;
-              }
+      <AssistantSelector
+        assistants={assistants}
+        selectedAssistant={selectedAssistant}
+        onChange={handleAssistantChange}
+      />
 
-              // Hide the first user message (automatic greeting)
-              if (message.role === 'user' && index === 0) {
-                return null;
-              }
+      <ChatMessageList
+        messages={messages}
+        shouldShowSkeleton={shouldShowSkeleton}
+        getSourcesForMessage={getSourcesForMessage}
+        messagesEndRef={messagesEndRef}
+        isEmbed={isEmbed}
+        hasSelectedAssistant={hasSelectedAssistant}
+      />
 
-              return (
-                <div
-                  key={message.id}
-                  className={`mb-4 flex ${
-                    message.role === 'user' ? 'justify-end' : 'justify-start'
-                  }`}
-                >
-                  <div
-                    className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
-                      message.role === 'user'
-                        ? 'bg-blue-500 text-white rounded-br-md'
-                        : 'bg-white text-gray-800 border border-gray-200 rounded-bl-md'
-                    }`}
-                  >
-                    {/* Show file attachments if present in parts */}
-                    {message.role === 'user' && message.parts &&
-                     message.parts.filter((part: any) => part.type === 'file').length > 0 && (
-                      <div className="mb-2">
-                        {message.parts
-                          .filter((part: any) => part.type === 'file')
-                          .map((filePart: any, index: number) => (
-                          <div key={index} className="flex items-center gap-2 text-xs bg-blue-400 bg-opacity-20 rounded-lg px-2 py-1 mb-1 border-b border-blue-400 border-opacity-30">
-                            <Paperclip className="w-3 h-3" />
-                            <span className="truncate font-medium">
-                              {filePart.name || `file-${index + 1}`}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Display content properly iterating through parts */}
-                    {message.parts?.map((part, i) => {
-                      switch (part.type) {
-                        case 'text':
-                          return <span key={`${message.id}-${i}`}>{part.text}</span>;
-                        default:
-                          return null;
-                      }
-                    })}
-
-                    {/* Show sources for assistant messages */}
-                    {message.role === 'assistant' && getSourcesForMessage(message.id) && (
-                      <SourceList
-                        sources={getSourcesForMessage(message.id)!}
-                      />
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-            
-            {/* Show skeleton message when loading and waiting for response to start */}
-            {shouldShowSkeleton && (
-              <SkeletonMessage />
-            )}
-            
-            <div ref={messagesEndRef} />
-          </>
-        )}
-      </div>
-      {/* Error Message */}
       {error && (
         <div className="mx-5 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
           {error.message}
         </div>
       )}
-      {/* File Input (Hidden) */}
-      <input
-        type="file"
-        accept=".pdf"
-        onChange={handleFileChange}
-        ref={fileInputRef}
-        className="hidden"
-      />
-      {/* Input */}
+
       <div className="p-5 bg-white border-t border-gray-200">
-        {isSessionComplete ? (
-          <div className="flex flex-col gap-3">
-            <div className="text-center text-sm text-gray-600">
-              Sessionen är klar! Du kan starta en ny konversation.
-            </div>
-            <Button
-              onClick={resetChat}
-              className="w-full rounded-full bg-green-500 hover:bg-green-600 text-white cursor-pointer"
-            >
-              Starta ny konversation
-            </Button>
-          </div>
-        ) : (
-          <>
-            {/* File Preview Area */}
-            {selectedFiles && selectedFiles.length > 0 && (
-              <div className="mb-3 flex items-center gap-2 p-3 bg-gray-50 rounded-lg text-sm border">
-                <Paperclip className="w-4 h-4 text-gray-500" />
-                <span className="flex-1 truncate font-medium">{selectedFiles[0].name}</span>
-                <span className="text-gray-400">({(selectedFiles[0].size / 1024).toFixed(1)} KB)</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm" 
-                  onClick={() => setSelectedFiles(undefined)}
-                  className="h-6 w-6 p-0 hover:bg-gray-200 cursor-pointer"
-                >
-                  <X className="w-3 h-3" />
-                </Button>
-              </div>
-            )}
-            
-            <form onSubmit={handleFormSubmit} className="flex gap-3">
-            <Input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={
-                selectedAssistant
-                  ? 'Skriv ditt meddelande...'
-                  : 'Välj en assistent först...'
-              }
-              disabled={!selectedAssistant || isLoading}
-              className="flex-1 rounded-full"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="default"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={!selectedAssistant || isLoading}
-              className="px-3 cursor-pointer hover:bg-gray-50"
-            >
-              <Paperclip className="w-4 h-4" />
-            </Button>
-            <Button
-              type="submit"
-              disabled={!selectedAssistant || !input.trim() || isLoading}
-              className={`px-6 rounded-full bg-blue-500 hover:bg-blue-600 ${
-                !selectedAssistant || !input.trim() || isLoading 
-                  ? 'cursor-not-allowed' 
-                  : 'cursor-pointer'
-              }`}
-            >
-              Skicka
-            </Button>
-          </form>
-          </>
-        )}
+        <ChatComposer
+          input={input}
+          onInputChange={setInput}
+          onSubmit={handleFormSubmit}
+          selectedFiles={selectedFiles}
+          onFileChange={handleFileChange}
+          onClearSelectedFiles={clearSelectedFiles}
+          isSessionComplete={isSessionComplete}
+          onResetChat={resetChat}
+          isLoading={isLoading}
+          hasSelectedAssistant={hasSelectedAssistant}
+          fileInputRef={fileInputRef}
+        />
       </div>
     </div>
   );
-} 
+}

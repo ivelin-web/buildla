@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -23,12 +23,7 @@ export default function ModelSettingsPanel({
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load settings on mount
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       setIsLoading(true);
       const data = await getModelSettings();
@@ -56,30 +51,40 @@ export default function ModelSettingsPanel({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [onSettingsChange]);
 
-  const debouncedSave = useCallback(
-    debounce(async (newSettings: UpdateModelSettings) => {
-      try {
-        setIsSaving(true);
-        const updatedSettings = await updateModelSettings(newSettings);
-        
-        // Update localStorage
-        localStorage.setItem('model-settings', JSON.stringify(updatedSettings));
-        
-        setSettings(updatedSettings);
-        onSettingsChange(updatedSettings);
-        
-        showSuccess('Settings saved');
-      } catch (error) {
-        console.error('Failed to save settings:', error);
-        showError('Failed to save settings');
-      } finally {
-        setIsSaving(false);
-      }
-    }, 1000),
-    []
+  // Load settings on mount
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  const debouncedSave = useMemo(
+    () =>
+      debounce(async (newSettings: UpdateModelSettings) => {
+        try {
+          setIsSaving(true);
+          const updatedSettings = await updateModelSettings(newSettings);
+          
+          // Update localStorage
+          localStorage.setItem('model-settings', JSON.stringify(updatedSettings));
+          
+          setSettings(updatedSettings);
+          onSettingsChange(updatedSettings);
+          
+          showSuccess('Settings saved');
+        } catch (error) {
+          console.error('Failed to save settings:', error);
+          showError('Failed to save settings');
+        } finally {
+          setIsSaving(false);
+        }
+      }, 1000),
+    [onSettingsChange]
   );
+
+  useEffect(() => () => {
+    debouncedSave.cancel();
+  }, [debouncedSave]);
 
   const handleSettingChange = (key: keyof UpdateModelSettings, value: string | number) => {
     if (!settings) return;
@@ -259,15 +264,30 @@ export default function ModelSettingsPanel({
   );
 }
 
+type DebouncedFunction<T extends (...args: Parameters<T>) => ReturnType<T>> = ((
+  ...args: Parameters<T>
+) => void) & { cancel: () => void };
+
 // Debounce utility function
 function debounce<T extends (...args: Parameters<T>) => ReturnType<T>>(
   func: T,
   wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout | null = null;
-  
-  return (...args: Parameters<T>) => {
-    if (timeout) clearTimeout(timeout);
+): DebouncedFunction<T> {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+
+  const debounced = (...args: Parameters<T>) => {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
     timeout = setTimeout(() => func(...args), wait);
   };
+
+  debounced.cancel = () => {
+    if (timeout) {
+      clearTimeout(timeout);
+      timeout = null;
+    }
+  };
+
+  return debounced;
 }

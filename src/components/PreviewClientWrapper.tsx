@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import ChatWidget from '@/components/chat/ChatWidget';
 import ModelSettingsPanel from '@/components/ModelSettingsPanel';
 import { ModelSettings } from '@/lib/supabase/types';
@@ -12,9 +12,9 @@ interface PreviewClientWrapperProps {
 export default function PreviewClientWrapper({ initialSettings }: PreviewClientWrapperProps) {
   const [modelSettings, setModelSettings] = useState<ModelSettings | null>(initialSettings || null);
 
-  const handleSettingsChange = (settings: ModelSettings) => {
+  const handleSettingsChange = useCallback((settings: ModelSettings) => {
     setModelSettings(settings);
-  };
+  }, []);
 
   return (
     <div className="flex gap-6">

@@ -15,7 +15,7 @@ export default function LogoutToast() {
       toast.success('Signed out successfully');
       router.replace('/auth');
     }
-  }, [searchParams]);
+  }, [router, searchParams]);
 
   return null;
 }
