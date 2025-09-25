@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 
 import { type Assistant } from '@/types';
 import { type ModelSettings } from '@/lib/supabase/types';
+import { ALLOWED_UPLOAD_FORMAT_LABEL, isAllowedFileType } from '@/lib/uploads';
 
 import { type MessageSource } from '../types';
 import {
@@ -80,11 +81,18 @@ export function useChatWidget({ modelSettings, isEmbed }: UseChatWidgetOptions):
       const files = event.target.files;
       if (files && files.length > 0) {
         const file = files[0];
-        if (validateFileSize(file)) {
-          setSelectedFiles(files);
-        } else {
+        if (!isAllowedFileType(file)) {
+          toast.error(`Filformatet stöds inte. Tillåtna format: ${ALLOWED_UPLOAD_FORMAT_LABEL}.`);
           clearSelectedFiles();
+          return;
         }
+
+        if (!validateFileSize(file)) {
+          clearSelectedFiles();
+          return;
+        }
+
+        setSelectedFiles(files);
       } else {
         clearSelectedFiles();
       }
@@ -246,21 +254,33 @@ export function useChatWidget({ modelSettings, isEmbed }: UseChatWidgetOptions):
       }
 
       const messageText = input;
+      const filesToSend = selectedFiles;
 
       setInput('');
-      clearSelectedFiles();
 
-      await sendMessage(
-        { text: messageText },
-        {
-          body: {
-            assistantId: selectedAssistant,
-            modelSettings
+      let shouldClearFiles = false;
+
+      try {
+        await sendMessage(
+          { text: messageText, files: filesToSend },
+          {
+            body: {
+              assistantId: selectedAssistant,
+              modelSettings
+            }
           }
+        );
+        shouldClearFiles = true;
+      } catch (submitError) {
+        console.error('Error sending message:', submitError);
+        setInput(messageText);
+      } finally {
+        if (shouldClearFiles) {
+          clearSelectedFiles();
         }
-      );
+      }
     },
-    [clearSelectedFiles, input, modelSettings, selectedAssistant, sendMessage]
+    [clearSelectedFiles, input, modelSettings, selectedAssistant, selectedFiles, sendMessage]
   );
 
   const shouldShowSkeleton = useMemo(() => {

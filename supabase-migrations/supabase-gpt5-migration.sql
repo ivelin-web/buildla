@@ -36,7 +36,7 @@ END;
 
 -- Insert default GPT-5 settings if no records exist
 INSERT INTO model_settings (model, max_tokens, verbosity, reasoning_effort)
-SELECT 'gpt-5-nano', 2048, 'low', 'low'
+SELECT 'gpt-5-nano', 3000, 'low', 'low'
 WHERE NOT EXISTS (SELECT 1 FROM model_settings);
 
 -- Add comments for documentation

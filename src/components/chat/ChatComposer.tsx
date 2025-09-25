@@ -2,6 +2,7 @@ import { type MutableRefObject } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Paperclip, X } from 'lucide-react';
+import { ALLOWED_UPLOAD_ACCEPT_ATTRIBUTE, getReadableFileType } from '@/lib/uploads';
 
 interface ChatComposerProps {
   input: string;
@@ -50,22 +51,34 @@ export function ChatComposer({
 
   return (
     <>
-      {selectedFiles && selectedFiles.length > 0 && (
-        <div className="mb-3 flex items-center gap-2 p-3 bg-gray-50 rounded-lg text-sm border">
-          <Paperclip className="w-4 h-4 text-gray-500" />
-          <span className="flex-1 truncate font-medium">{selectedFiles[0].name}</span>
-          <span className="text-gray-400">({(selectedFiles[0].size / 1024).toFixed(1)} KB)</span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onClearSelectedFiles}
-            className="h-6 w-6 p-0 hover:bg-gray-200 cursor-pointer"
-          >
-            <X className="w-3 h-3" />
-          </Button>
-        </div>
-      )}
+      {selectedFiles && selectedFiles.length > 0 && (() => {
+        const file = selectedFiles[0];
+        return (
+          <div className="mb-3 flex items-center gap-3 rounded-xl border border-gray-200 bg-white/60 p-3 text-sm shadow-sm">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
+              <Paperclip className="h-4 w-4 text-gray-500" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="truncate font-medium text-gray-800">{file.name}</span>
+                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-500">
+                  {getReadableFileType(file)}
+                </span>
+              </div>
+              <div className="mt-1 text-xs text-gray-500">{(file.size / 1024).toFixed(1)} KB</div>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onClearSelectedFiles}
+              className="h-8 w-8 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        );
+      })()}
 
       <form
         onSubmit={(event) => {
@@ -104,7 +117,7 @@ export function ChatComposer({
 
       <input
         type="file"
-        accept=".pdf"
+        accept={ALLOWED_UPLOAD_ACCEPT_ATTRIBUTE}
         onChange={onFileChange}
         ref={fileInputRef}
         className="hidden"

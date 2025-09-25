@@ -1,9 +1,12 @@
+"use client";
+
 import { type UIMessage } from 'ai';
-import { type MutableRefObject } from 'react';
+import { useMemo, useState, type MutableRefObject } from 'react';
 import { Paperclip } from 'lucide-react';
 
 import { SkeletonMessage } from '@/components/ui/skeleton-message';
 import { SourceList } from '@/components/ui/source-list';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 import { type MessageSource, type ChatMessagePart } from './types';
 
@@ -26,6 +29,27 @@ export function ChatMessageList({
   isEmbed,
   hasSelectedAssistant
 }: ChatMessageListProps) {
+  const [previewFile, setPreviewFile] = useState<{
+    filename?: string;
+    url: string;
+    mediaType?: string;
+  } | null>(null);
+
+  const isPreviewImage = useMemo(
+    () => Boolean(previewFile?.mediaType?.startsWith('image/')),
+    [previewFile]
+  );
+
+  const isPreviewPdf = useMemo(() => {
+    if (!previewFile) {
+      return false;
+    }
+
+    const mediaType = previewFile.mediaType?.toLowerCase() ?? '';
+    const fileName = previewFile.filename?.toLowerCase() ?? '';
+    return mediaType === 'application/pdf' || fileName.endsWith('.pdf');
+  }, [previewFile]);
+
   return (
     <div className={`${isEmbed ? 'flex-1' : 'h-96'} overflow-y-auto p-5 bg-gray-50`}>
       {!hasSelectedAssistant ? (
@@ -67,15 +91,23 @@ export function ChatMessageList({
                   {fileParts.length > 0 && (
                     <div className="mb-2">
                       {fileParts.map((filePart, fileIndex) => (
-                        <div
+                        <button
                           key={`${filePart.url}-${fileIndex}`}
-                          className="flex items-center gap-2 text-xs bg-blue-400 bg-opacity-20 rounded-lg px-2 py-1 mb-1 border-b border-blue-400 border-opacity-30"
+                          type="button"
+                          onClick={() => {
+                            setPreviewFile({
+                              filename: filePart.filename,
+                              url: filePart.url,
+                              mediaType: filePart.mediaType
+                            });
+                          }}
+                          className="flex w-full items-center gap-2 text-left text-xs bg-blue-400 bg-opacity-20 rounded-lg px-2 py-1 mb-1 border border-blue-400 border-opacity-30 transition hover:bg-blue-400/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-blue-500 cursor-pointer"
                         >
                           <Paperclip className="w-3 h-3" />
                           <span className="truncate font-medium">
                             {filePart.filename || `file-${fileIndex + 1}`}
                           </span>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   )}
@@ -102,6 +134,53 @@ export function ChatMessageList({
           <div ref={messagesEndRef} />
         </>
       )}
+
+      <Dialog
+        open={Boolean(previewFile)}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setPreviewFile(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-4xl">
+          {previewFile && (
+            <div className="flex flex-col gap-4">
+              <DialogHeader>
+                <DialogTitle className="truncate text-base font-semibold">
+                  {previewFile.filename || 'Förhandsgranskning'}
+                </DialogTitle>
+              </DialogHeader>
+
+              {isPreviewImage ? (
+                <img
+                  src={previewFile.url}
+                  alt={previewFile.filename || 'Förhandsgranskning av bild'}
+                  className="max-h-[70vh] w-full rounded-lg object-contain bg-gray-100"
+                />
+              ) : isPreviewPdf ? (
+                <iframe
+                  src={previewFile.url}
+                  title={previewFile.filename || 'Förhandsgranskning av PDF'}
+                  className="h-[70vh] w-full rounded-lg border border-gray-200"
+                />
+              ) : (
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                  Det här filformatet kan inte förhandsgranskas. Du kan
+                  <a
+                    href={previewFile.url}
+                    download={previewFile.filename}
+                    className="ml-1 font-medium text-blue-600 underline"
+                  >
+                    ladda ner filen här
+                  </a>
+                  .
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
