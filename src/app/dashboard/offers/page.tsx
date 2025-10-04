@@ -1,4 +1,7 @@
+export const dynamic = "force-dynamic"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { OfferAttachments } from '@/components/offers/OfferAttachments';
 import { getOffers } from '@/lib/actions/offers';
 
 export default async function OffersPage() {
@@ -42,7 +45,7 @@ export default async function OffersPage() {
                 <div>Material: {offer.offer_details.materialCost.toLocaleString('sv-SE')} kr</div>
                 <div>ROT: -{offer.offer_details.rotDeduction.toLocaleString('sv-SE')} kr</div>
               </div>
-              
+
               <div className="flex flex-wrap gap-1">
                 <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-md">
                   {offer.offer_details.form === 'standard' ? 'Standard form' : 'Annan form'}
@@ -59,6 +62,8 @@ export default async function OffersPage() {
                   </span>
                 )}
               </div>
+
+              <OfferAttachments files={offer.files} />
             </div>
           ))}
           

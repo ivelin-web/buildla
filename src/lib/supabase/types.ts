@@ -104,13 +104,54 @@ export interface Database {
           status?: string | null
           created_at?: string
           updated_at?: string | null
+      }
+      Relationships: [
+        {
+          foreignKeyName: "offers_assistant_id_fkey"
+          columns: ["assistant_id"]
+          isOneToOne: false
+          referencedRelation: "assistants"
+          referencedColumns: ["id"]
+        }
+      ]
+    }
+      offer_files: {
+        Row: {
+          id: string
+          offer_id: string | null
+          session_id: string
+          file_name: string
+          storage_path: string
+          mime_type: string | null
+          size_bytes: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          offer_id?: string | null
+          session_id: string
+          file_name: string
+          storage_path: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          offer_id?: string | null
+          session_id?: string
+          file_name?: string
+          storage_path?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          created_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "offers_assistant_id_fkey"
-            columns: ["assistant_id"]
+            foreignKeyName: "offer_files_offer_id_fkey"
+            columns: ["offer_id"]
             isOneToOne: false
-            referencedRelation: "assistants"
+            referencedRelation: "offers"
             referencedColumns: ["id"]
           }
         ]
@@ -186,6 +227,10 @@ export type UpdateModelSettings = Database['public']['Tables']['model_settings']
 export type Offer = Database['public']['Tables']['offers']['Row']
 export type InsertOffer = Database['public']['Tables']['offers']['Insert']
 export type UpdateOffer = Database['public']['Tables']['offers']['Update']
+
+export type OfferFile = Database['public']['Tables']['offer_files']['Row']
+export type InsertOfferFile = Database['public']['Tables']['offer_files']['Insert']
+export type UpdateOfferFile = Database['public']['Tables']['offer_files']['Update']
 
 export type FAQEmbedding = Database['public']['Tables']['faq_embeddings']['Row']
 export type InsertFAQEmbedding = Database['public']['Tables']['faq_embeddings']['Insert']

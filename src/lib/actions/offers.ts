@@ -1,8 +1,9 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
-import { revalidatePath } from 'next/cache';
-import { Json } from '@/lib/supabase/types';
+import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { revalidatePath } from "next/cache";
+import { Json, type OfferFile } from "@/lib/supabase/types";
 
 export interface CustomerInfo {
   name: string;
@@ -40,6 +41,7 @@ export interface OfferData {
   status: 'pending' | 'completed' | null;
   created_at: string;
   updated_at: string | null;
+  files: OfferFile[];
 }
 
 export async function createOffer(data: {
@@ -47,6 +49,7 @@ export async function createOffer(data: {
   customerInfo: CustomerInfo;
   offerDetails: OfferDetails;
   chatMessages?: ChatMessage[];
+  uploadSessionId?: string;
 }): Promise<{ success: boolean; offerId?: string; error?: string }> {
   try {
     const supabase = await createClient();
@@ -66,6 +69,23 @@ export async function createOffer(data: {
     if (error) {
       console.error('Error creating offer:', error);
       return { success: false, error: error.message };
+    }
+
+    if (data.uploadSessionId) {
+      try {
+        const serviceSupabase = createServiceRoleClient();
+        const { error: linkError } = await serviceSupabase
+          .from('offer_files')
+          .update({ offer_id: insertData.id })
+          .eq('session_id', data.uploadSessionId)
+          .is('offer_id', null);
+
+        if (linkError) {
+          console.error('Failed to link uploaded files to offer:', linkError);
+        }
+      } catch (linkError) {
+        console.error('Unexpected error while linking uploaded files:', linkError);
+      }
     }
 
     revalidatePath('/dashboard/offers');
@@ -99,12 +119,48 @@ export async function getOffers(): Promise<OfferData[]> {
       return [];
     }
 
-    return (data || []).map(offer => ({
+    const normalizedOffers = (data || []).map(offer => ({
       ...offer,
       customer_info: offer.customer_info as unknown as CustomerInfo,
       offer_details: offer.offer_details as unknown as OfferDetails,
       chat_messages: offer.chat_messages as unknown as ChatMessage[] | null,
       status: offer.status as 'pending' | 'completed' | null
+    }));
+
+    const offerIds = normalizedOffers.map((offer) => offer.id);
+    let filesByOfferId = new Map<string, OfferFile[]>();
+
+    if (offerIds.length > 0) {
+      try {
+        const serviceSupabase = createServiceRoleClient();
+        const { data: filesData, error: filesError } = await serviceSupabase
+          .from('offer_files')
+          .select('*')
+          .in('offer_id', offerIds)
+          .order('created_at', { ascending: true });
+
+        if (filesError) {
+          console.error('Error fetching offer files:', filesError);
+        } else if (filesData) {
+          filesByOfferId = filesData.reduce((acc, file) => {
+            const offerId = file.offer_id;
+            if (!offerId) {
+              return acc;
+            }
+
+            const list = acc.get(offerId) ?? [];
+            acc.set(offerId, [...list, file as OfferFile]);
+            return acc;
+          }, new Map<string, OfferFile[]>());
+        }
+      } catch (filesError) {
+        console.error('Unexpected error fetching offer files:', filesError);
+      }
+    }
+
+    return normalizedOffers.map((offer) => ({
+      ...offer,
+      files: filesByOfferId.get(offer.id) ?? []
     }));
   } catch (error) {
     console.error('Error fetching offers:', error);
@@ -138,12 +194,32 @@ export async function getOfferById(id: string): Promise<OfferData | null> {
 
     if (!data) return null;
 
+    let files: OfferFile[] = [];
+
+    try {
+      const serviceSupabase = createServiceRoleClient();
+      const { data: filesData, error: filesError } = await serviceSupabase
+        .from('offer_files')
+        .select('*')
+        .eq('offer_id', id)
+        .order('created_at', { ascending: true });
+
+      if (filesError) {
+        console.error('Error fetching offer files:', filesError);
+      } else if (filesData) {
+        files = filesData.map((file) => file as OfferFile);
+      }
+    } catch (filesError) {
+      console.error('Unexpected error fetching offer files:', filesError);
+    }
+
     return {
       ...data,
       customer_info: data.customer_info as unknown as CustomerInfo,
       offer_details: data.offer_details as unknown as OfferDetails,
       chat_messages: data.chat_messages as unknown as ChatMessage[] | null,
-      status: data.status as 'pending' | 'completed' | null
+      status: data.status as 'pending' | 'completed' | null,
+      files
     };
   } catch (error) {
     console.error('Error fetching offer:', error);

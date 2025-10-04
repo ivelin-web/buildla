@@ -23,6 +23,7 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
     messages,
     error,
     isLoading,
+    isUploadingFile,
     shouldShowSkeleton,
     messagesEndRef,
     fileInputRef,
@@ -82,6 +83,7 @@ export default function ChatWidget({ className = '', modelSettings, isEmbed = fa
           isSessionComplete={isSessionComplete}
           onResetChat={resetChat}
           isLoading={isLoading}
+          isUploadingFile={isUploadingFile}
           hasSelectedAssistant={hasSelectedAssistant}
           fileInputRef={fileInputRef}
         />

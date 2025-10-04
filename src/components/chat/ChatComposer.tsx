@@ -9,12 +9,13 @@ interface ChatComposerProps {
   onInputChange: (value: string) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => Promise<void>;
   selectedFiles?: FileList;
-  onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   onClearSelectedFiles: () => void;
   isSessionComplete: boolean;
   onResetChat: () => Promise<void>;
   isLoading: boolean;
   hasSelectedAssistant: boolean;
+  isUploadingFile: boolean;
   fileInputRef: MutableRefObject<HTMLInputElement | null>;
 }
 
@@ -29,6 +30,7 @@ export function ChatComposer({
   onResetChat,
   isLoading,
   hasSelectedAssistant,
+  isUploadingFile,
   fileInputRef
 }: ChatComposerProps) {
   if (isSessionComplete) {
@@ -65,7 +67,9 @@ export function ChatComposer({
                   {getReadableFileType(file)}
                 </span>
               </div>
-              <div className="mt-1 text-xs text-gray-500">{(file.size / 1024).toFixed(1)} KB</div>
+              <div className="mt-1 text-xs text-gray-500">
+                {isUploadingFile ? 'Laddar upp…' : `${(file.size / 1024).toFixed(1)} KB`}
+              </div>
             </div>
             <Button
               type="button"
@@ -99,7 +103,7 @@ export function ChatComposer({
           variant="outline"
           size="default"
           onClick={() => fileInputRef.current?.click()}
-          disabled={!hasSelectedAssistant || isLoading}
+          disabled={!hasSelectedAssistant || isLoading || isUploadingFile}
           className="px-3 cursor-pointer hover:bg-gray-50"
         >
           <Paperclip className="w-4 h-4" />
@@ -118,7 +122,9 @@ export function ChatComposer({
       <input
         type="file"
         accept={ALLOWED_UPLOAD_ACCEPT_ATTRIBUTE}
-        onChange={onFileChange}
+        onChange={(event) => {
+          void onFileChange(event);
+        }}
         ref={fileInputRef}
         className="hidden"
       />

@@ -12,10 +12,11 @@ export const maxDuration = 30;
 
 export async function POST(request: NextRequest) {
   try {
-    const { 
-      messages, 
-      assistantId, 
-      modelSettings 
+    const {
+      messages,
+      assistantId,
+      modelSettings,
+      uploadSessionId
     } = await request.json();
 
 
@@ -97,7 +98,8 @@ export async function POST(request: NextRequest) {
             assistantId,
             customerInfo,
             offerDetails,
-            chatMessages: messages
+            chatMessages: messages,
+            uploadSessionId
           });
           
           if (result.success) {

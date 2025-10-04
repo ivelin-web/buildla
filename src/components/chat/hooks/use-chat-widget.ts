@@ -1,157 +1,45 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo, useCallback, type MutableRefObject } from 'react';
-import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-import { type Assistant } from '@/types';
-import { type ModelSettings } from '@/lib/supabase/types';
-import { ALLOWED_UPLOAD_FORMAT_LABEL, isAllowedFileType } from '@/lib/uploads';
-
-import { type MessageSource } from '../types';
-import {
-  isFaqToolResponse,
-  isSaveOfferResponse,
-  isToolOutputPartOfType,
-  parseToolOutput,
-  type FaqToolResponse,
-  type SaveOfferResponse
-} from '../utils/tool-results';
-
-interface UseChatWidgetOptions {
-  modelSettings?: ModelSettings | null;
-  isEmbed: boolean;
-}
-
-interface UseChatWidgetResult {
-  assistants: Assistant[];
-  selectedAssistant: string;
-  isSessionComplete: boolean;
-  selectedFiles?: FileList;
-  input: string;
-  messages: ReturnType<typeof useChat>['messages'];
-  error: ReturnType<typeof useChat>['error'];
-  isLoading: boolean;
-  shouldShowSkeleton: boolean;
-  messagesEndRef: MutableRefObject<HTMLDivElement | null>;
-  fileInputRef: MutableRefObject<HTMLInputElement | null>;
-  getSourcesForMessage: (messageId: string) => MessageSource[] | null;
-  handleAssistantChange: (assistantId: string) => Promise<void>;
-  handleFormSubmit: (event: React.FormEvent<HTMLFormElement>) => Promise<void>;
-  handleFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  clearSelectedFiles: () => void;
-  resetChat: () => Promise<void>;
-  setInput: React.Dispatch<React.SetStateAction<string>>;
-}
+import { useChatUploads } from './use-chat-uploads';
+import { useChatSession } from './use-chat-session';
+import { useAssistantList } from './use-assistants';
+import type { UseChatWidgetOptions, UseChatWidgetResult } from './use-chat-widget.types';
 
 export function useChatWidget({ modelSettings, isEmbed }: UseChatWidgetOptions): UseChatWidgetResult {
-  const [assistants, setAssistants] = useState<Assistant[]>([]);
+  const { assistants } = useAssistantList(isEmbed);
   const [selectedAssistant, setSelectedAssistant] = useState<string>('');
   const [isSessionComplete, setIsSessionComplete] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<FileList | undefined>(undefined);
   const [input, setInput] = useState('');
-  const [messageSources, setMessageSources] = useState<Map<string, MessageSource[]>>(new Map());
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const MAX_FILE_SIZE_MB = parseInt(process.env.NEXT_PUBLIC_MAX_FILE_SIZE_MB || '10');
-  const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+  const {
+    fileInputRef,
+    selectedFiles,
+    currentUpload,
+    isUploadingFile,
+    uploadSessionId,
+    handleFileChange,
+    clearSelectedFiles: clearSelectedFilesAsync,
+    beginNewUploadSession
+  } = useChatUploads();
 
   const clearSelectedFiles = useCallback(() => {
-    setSelectedFiles(undefined);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  }, []);
-
-  const validateFileSize = useCallback(
-    (file: File) => {
-      if (file.size > MAX_FILE_SIZE_BYTES) {
-        toast.error(`Filstorleken överskrider ${MAX_FILE_SIZE_MB}MB-gränsen. Välj en mindre fil.`);
-        return false;
-      }
-      return true;
-    },
-    [MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB]
-  );
-
-  const handleFileChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const files = event.target.files;
-      if (files && files.length > 0) {
-        const file = files[0];
-        if (!isAllowedFileType(file)) {
-          toast.error(`Filformatet stöds inte. Tillåtna format: ${ALLOWED_UPLOAD_FORMAT_LABEL}.`);
-          clearSelectedFiles();
-          return;
-        }
-
-        if (!validateFileSize(file)) {
-          clearSelectedFiles();
-          return;
-        }
-
-        setSelectedFiles(files);
-      } else {
-        clearSelectedFiles();
-      }
-    },
-    [clearSelectedFiles, validateFileSize]
-  );
+    void clearSelectedFilesAsync();
+  }, [clearSelectedFilesAsync]);
 
   const {
     messages,
     sendMessage,
     status,
     error,
-    setMessages
-  } = useChat({
-    transport: new DefaultChatTransport({
-      api: '/api/chat'
-    }),
-    onFinish: ({ message }) => {
-      for (const part of message.parts) {
-        if (!isToolOutputPartOfType(part, 'tool-searchFAQ')) {
-          continue;
-        }
-
-        const parsed = parseToolOutput<FaqToolResponse>(part.output);
-
-        if (!parsed) {
-          continue;
-        }
-
-        if (isFaqToolResponse(parsed)) {
-          const normalizedResults = parsed.results.map((result) => ({
-            url: result.url,
-            title: result.title ?? null,
-            source: result.source ?? null,
-            similarity: result.similarity,
-            content: result.content
-          }));
-
-          setMessageSources((previous) => new Map(previous).set(message.id, normalizedResults));
-          break;
-        }
-      }
-
-      for (const part of message.parts) {
-        if (!isToolOutputPartOfType(part, 'tool-saveOffer')) {
-          continue;
-        }
-
-        const parsed = parseToolOutput<SaveOfferResponse>(part.output);
-
-        if (parsed && isSaveOfferResponse(parsed) && parsed.success) {
-          setIsSessionComplete(true);
-          break;
-        }
-      }
-    },
-    onError: (chatError) => {
-      console.error('Chat error:', chatError);
-    }
+    setMessages,
+    shouldShowSkeleton,
+    getSourcesForMessage,
+    resetSources
+  } = useChatSession({
+    onOfferCompleted: () => setIsSessionComplete(true)
   });
 
   const isLoading = status === 'streaming' || status === 'submitted';
@@ -168,38 +56,8 @@ export function useChatWidget({ modelSettings, isEmbed }: UseChatWidgetOptions):
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  const loadAssistants = useCallback(async () => {
-    try {
-      const url = isEmbed ? '/api/assistants?widget=true' : '/api/assistants';
-      const response = await fetch(url);
-      const data: { assistants?: Assistant[] } = await response.json();
-      if (data.assistants) {
-        setAssistants(data.assistants);
-      }
-    } catch (loadError) {
-      console.error('Failed to load assistants:', loadError);
-    }
-  }, [isEmbed]);
-
-  useEffect(() => {
-    loadAssistants();
-  }, [loadAssistants]);
-
-  const getSourcesForMessage = useCallback(
-    (messageId: string) => {
-      const sources = messageSources.get(messageId);
-      return sources && sources.length > 0 ? sources.slice(0, 3) : null;
-    },
-    [messageSources]
-  );
-
-  const handleAssistantChange = useCallback(
-    async (assistantId: string) => {
-      setSelectedAssistant(assistantId);
-      setIsSessionComplete(false);
-      setMessages([]);
-      setMessageSources(new Map());
-
+  const startConversation = useCallback(
+    async (assistantId: string, sessionId: string) => {
       if (!assistantId) {
         return;
       }
@@ -210,46 +68,55 @@ export function useChatWidget({ modelSettings, isEmbed }: UseChatWidgetOptions):
           {
             body: {
               assistantId,
-              modelSettings
+              modelSettings,
+              uploadSessionId: sessionId
             }
           }
         );
-      } catch (assistantError) {
-        console.error('Error starting conversation:', assistantError);
+      } catch (error) {
+        console.error('Error starting conversation:', error);
       }
     },
-    [modelSettings, sendMessage, setMessages]
+    [modelSettings, sendMessage]
+  );
+
+  const handleAssistantChange = useCallback(
+    async (assistantId: string) => {
+      setSelectedAssistant(assistantId);
+      setIsSessionComplete(false);
+      setMessages([]);
+      resetSources();
+
+      const newSessionId = await beginNewUploadSession();
+      await startConversation(assistantId, newSessionId);
+    },
+    [beginNewUploadSession, resetSources, setMessages, setIsSessionComplete, startConversation]
   );
 
   const resetChat = useCallback(async () => {
     setMessages([]);
     setIsSessionComplete(false);
-    setMessageSources(new Map());
+    resetSources();
 
-    if (!selectedAssistant) {
-      return;
-    }
-
-    try {
-      await sendMessage(
-        { text: 'Hej' },
-        {
-          body: {
-            assistantId: selectedAssistant,
-            modelSettings
-          }
-        }
-      );
-    } catch (resetError) {
-      console.error('Error restarting conversation:', resetError);
-    }
-  }, [modelSettings, selectedAssistant, sendMessage, setMessages]);
+    const newSessionId = await beginNewUploadSession();
+    await startConversation(selectedAssistant, newSessionId);
+  }, [beginNewUploadSession, resetSources, selectedAssistant, startConversation, setMessages, setIsSessionComplete]);
 
   const handleFormSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
 
       if (!input.trim()) {
+        return;
+      }
+
+      if (isUploadingFile) {
+        toast.error('Vänta tills filen har laddats upp.');
+        return;
+      }
+
+      if (selectedFiles?.length && !currentUpload) {
+        toast.error('Filen kunde inte laddas upp. Försök igen.');
         return;
       }
 
@@ -266,7 +133,8 @@ export function useChatWidget({ modelSettings, isEmbed }: UseChatWidgetOptions):
           {
             body: {
               assistantId: selectedAssistant,
-              modelSettings
+              modelSettings,
+              uploadSessionId
             }
           }
         );
@@ -276,22 +144,22 @@ export function useChatWidget({ modelSettings, isEmbed }: UseChatWidgetOptions):
         setInput(messageText);
       } finally {
         if (shouldClearFiles) {
-          clearSelectedFiles();
+          await clearSelectedFilesAsync({ deleteUploaded: false });
         }
       }
     },
-    [clearSelectedFiles, input, modelSettings, selectedAssistant, selectedFiles, sendMessage]
+    [
+      clearSelectedFilesAsync,
+      currentUpload,
+      input,
+      isUploadingFile,
+      modelSettings,
+      selectedAssistant,
+      selectedFiles,
+      sendMessage,
+      uploadSessionId
+    ]
   );
-
-  const shouldShowSkeleton = useMemo(() => {
-    if (!isLoading) {
-      return false;
-    }
-    const lastMessage = messages[messages.length - 1];
-    const textPart = lastMessage?.parts?.find((part) => part.type === 'text');
-    const isStreamingAssistantMessage = lastMessage?.role === 'assistant' && textPart?.text?.trim();
-    return !isStreamingAssistantMessage;
-  }, [isLoading, messages]);
 
   return {
     assistants,
@@ -302,6 +170,7 @@ export function useChatWidget({ modelSettings, isEmbed }: UseChatWidgetOptions):
     messages,
     error,
     isLoading,
+    isUploadingFile,
     shouldShowSkeleton,
     messagesEndRef,
     fileInputRef,

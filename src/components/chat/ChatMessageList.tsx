@@ -1,6 +1,7 @@
 "use client";
 
 import { type UIMessage } from 'ai';
+import Image from 'next/image';
 import { useMemo, useState, type MutableRefObject } from 'react';
 import { Paperclip } from 'lucide-react';
 
@@ -153,11 +154,16 @@ export function ChatMessageList({
               </DialogHeader>
 
               {isPreviewImage ? (
-                <img
-                  src={previewFile.url}
-                  alt={previewFile.filename || 'Förhandsgranskning av bild'}
-                  className="max-h-[70vh] w-full rounded-lg object-contain bg-gray-100"
-                />
+                <div className="relative flex h-[70vh] w-full items-center justify-center overflow-hidden rounded-lg bg-gray-100">
+                  <Image
+                    src={previewFile.url}
+                    alt={previewFile.filename || 'Förhandsgranskning av bild'}
+                    fill
+                    className="object-contain"
+                    sizes="(min-width: 768px) 70vw, 100vw"
+                    unoptimized
+                  />
+                </div>
               ) : isPreviewPdf ? (
                 <iframe
                   src={previewFile.url}
