@@ -34,12 +34,6 @@ async function ensureAuthenticated() {
 
 export async function POST(request: NextRequest) {
   try {
-    const isAuthenticated = await ensureAuthenticated()
-
-    if (!isAuthenticated) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     const formData = await request.formData()
     const file = formData.get("file")
     const sessionId = formData.get("sessionId")?.toString()
@@ -185,12 +179,6 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const isAuthenticated = await ensureAuthenticated()
-
-    if (!isAuthenticated) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     const searchParams = request.nextUrl.searchParams
     const id = searchParams.get("id")
     const sessionId = searchParams.get("sessionId")
