@@ -150,6 +150,27 @@ export function useChatUploads(): UseChatUploadsResult {
           throw new Error('Malformed upload response')
         }
 
+        try {
+          const signedUrlResponse = await fetch(
+            `/api/uploads?id=${encodeURIComponent(json.file.id)}&sessionId=${encodeURIComponent(uploadSessionId)}`
+          )
+
+          if (signedUrlResponse.ok) {
+            const signedUrlJson = (await signedUrlResponse.json()) as {
+              file?: UploadedFileRecord
+            }
+
+            if (signedUrlJson.file?.signedUrl) {
+              return {
+                ...json.file,
+                signedUrl: signedUrlJson.file.signedUrl
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch signed URL for uploaded file', error)
+        }
+
         return json.file
       } catch (error) {
         console.error('Failed to upload file', error)

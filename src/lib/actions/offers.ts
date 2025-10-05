@@ -48,19 +48,23 @@ export async function createOffer(data: {
   assistantId: string;
   customerInfo: CustomerInfo;
   offerDetails: OfferDetails;
-  chatMessages?: ChatMessage[];
+  chatMessages?: unknown;
   uploadSessionId?: string;
 }): Promise<{ success: boolean; offerId?: string; error?: string }> {
   try {
     const supabase = await createClient();
-    
+
+    const serviceSupabase = data.uploadSessionId ? createServiceRoleClient() : null;
+
+    const sanitizedMessages = sanitizeChatMessages(data.chatMessages);
+
     const { data: insertData, error } = await supabase
       .from('offers')
       .insert({
         assistant_id: data.assistantId,
         customer_info: data.customerInfo as unknown as Json,
         offer_details: data.offerDetails as unknown as Json,
-        chat_messages: (data.chatMessages || []) as unknown as Json,
+        chat_messages: sanitizedMessages as unknown as Json,
         status: 'completed'
       })
       .select('id')
@@ -71,9 +75,8 @@ export async function createOffer(data: {
       return { success: false, error: error.message };
     }
 
-    if (data.uploadSessionId) {
+    if (data.uploadSessionId && serviceSupabase) {
       try {
-        const serviceSupabase = createServiceRoleClient();
         const { error: linkError } = await serviceSupabase
           .from('offer_files')
           .update({ offer_id: insertData.id })
@@ -94,6 +97,64 @@ export async function createOffer(data: {
     console.error('Error creating offer:', error);
     return { success: false, error: 'Failed to create offer' };
   }
+}
+
+type RawChatMessage = {
+  role?: string;
+  parts?: Array<{
+    type?: string;
+    text?: string;
+  }>;
+  content?: string;
+};
+
+function sanitizeChatMessages(rawMessages: unknown): ChatMessage[] {
+  if (!Array.isArray(rawMessages)) {
+    return [];
+  }
+
+  return rawMessages.reduce<ChatMessage[]>((acc, message) => {
+    if (!message || typeof message !== 'object') {
+      return acc;
+    }
+
+    const { role, parts, content } = message as RawChatMessage;
+    const normalizedRole: ChatMessage['role'] =
+      role === 'assistant' || role === 'system' ? role : 'user';
+
+    const partArray = Array.isArray(parts) ? parts : [];
+    const textSegments: string[] = [];
+
+    for (const part of partArray) {
+      if (!part || typeof part !== 'object') {
+        continue;
+      }
+
+      if (part.type === 'text' && typeof part.text === 'string') {
+        const trimmed = part.text.trim();
+        if (trimmed) {
+          textSegments.push(trimmed);
+        }
+      }
+    }
+
+    if (typeof content === 'string' && content.trim().length > 0) {
+      textSegments.push(content.trim());
+    }
+
+    const combinedContent = textSegments.filter(Boolean).join('\n\n').trim();
+
+    if (!combinedContent) {
+      return acc;
+    }
+
+    acc.push({
+      role: normalizedRole,
+      content: combinedContent
+    });
+
+    return acc;
+  }, []);
 }
 
 export async function getOffers(): Promise<OfferData[]> {

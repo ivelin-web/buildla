@@ -132,25 +132,30 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const isAuthenticated = await ensureAuthenticated()
-
-    if (!isAuthenticated) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     const id = request.nextUrl.searchParams.get("id")
+    const sessionId = request.nextUrl.searchParams.get("sessionId")
 
     if (!id) {
       return NextResponse.json({ error: "id is required" }, { status: 400 })
     }
 
+    if (!sessionId) {
+      const isAuthenticated = await ensureAuthenticated()
+
+      if (!isAuthenticated) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      }
+    }
+
     const supabase = createServiceRoleClient()
 
-    const { data, error } = await supabase
-      .from("offer_files")
-      .select("*")
-      .eq("id", id)
-      .single()
+    let query = supabase.from("offer_files").select("*").eq("id", id)
+
+    if (sessionId) {
+      query = query.eq("session_id", sessionId)
+    }
+
+    const { data, error } = await query.single()
 
     if (error || !data) {
       return NextResponse.json({ error: "File not found" }, { status: 404 })

@@ -117,17 +117,18 @@ export function ChatComposer({
         >
           Skicka
         </Button>
-      </form>
 
-      <input
-        type="file"
-        accept={ALLOWED_UPLOAD_ACCEPT_ATTRIBUTE}
-        onChange={(event) => {
-          void onFileChange(event);
-        }}
-        ref={fileInputRef}
-        className="hidden"
-      />
+        <input
+          type="file"
+          accept={ALLOWED_UPLOAD_ACCEPT_ATTRIBUTE}
+          onChange={(event) => {
+            void onFileChange(event);
+          }}
+          ref={fileInputRef}
+          className="sr-only"
+          tabIndex={-1}
+        />
+      </form>
     </>
   );
 }
